@@ -311,6 +311,26 @@ public class BinaryTree {
         return ret;
     }
 
+    public List<Integer> inorderTraversalNor(BTNode root) {
+        List<Integer> ret = new ArrayList<>();
+        if(root == null){
+            return null;
+        }
+        Stack<BTNode> stack = new Stack<>();
+        BTNode cur = root;
+        while(cur != null || !stack.empty()){
+            while(cur != null){
+                stack.push(cur);
+                cur = cur.left;
+            }
+            BTNode top = stack.pop();
+            //System.out.print(top.val + " ");
+            ret.add(top.val);
+            cur = top.right;
+        }
+        return ret;
+    }
+
     //时间复杂度O(n ^ 2)
     public boolean isBalanced(BTNode root) {
         if(root == null){
@@ -416,4 +436,7 @@ public class BinaryTree {
         stack.pop();
         return false;
     }
+
+
+
 }

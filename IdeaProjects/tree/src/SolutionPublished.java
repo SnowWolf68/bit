@@ -1,3 +1,5 @@
+import sun.reflect.generics.tree.Tree;
+
 import java.util.*;
 
 public class SolutionPublished {
@@ -61,9 +63,28 @@ public class SolutionPublished {
      * @param root
      * @return
      */
-    /*public boolean isCompleteTree(TreeNode root){
-
-    }*/
+    public boolean isCompleteTree(TreeNode root){
+        Queue<TreeNode> queue = new LinkedList<>();
+        if(root == null){
+            return true;
+        }
+        queue.offer(root);
+        while(!queue.isEmpty()){
+            TreeNode cur = queue.poll();
+            if(cur != null){
+                queue.offer(cur.left);
+                queue.offer(cur.right);
+            }else{
+                break;
+            }
+        }
+        while(!queue.isEmpty()){
+            if(queue.poll() != null){
+                return false;
+            }
+        }
+        return true;
+    }
 
 
 
@@ -232,6 +253,155 @@ public class SolutionPublished {
             }
         }
         return ret;
+    }
+
+    //https://leetcode.cn/problems/construct-string-from-binary-tree/
+    public String tree2str(TreeNode root) {
+        StringBuilder stringBuilder = new StringBuilder();
+        tree2strChild(root,stringBuilder);
+        return stringBuilder.toString();
+    }
+
+    public void tree2strChild(TreeNode root,StringBuilder stringBuilder){
+        if(root == null){
+            return;
+        }
+        stringBuilder.append(root.val);
+        if(root.left != null){
+            stringBuilder.append("(");
+            tree2strChild(root.left,stringBuilder);
+            stringBuilder.append(")");
+        }else{
+            if(root.right == null){
+                return;
+            }else{
+                stringBuilder.append("()");
+            }
+        }
+        if(root.right != null){
+            stringBuilder.append("(");
+            tree2strChild(root.right,stringBuilder);
+            stringBuilder.append(")");
+        }
+    }
+
+    //https://leetcode.cn/problems/construct-binary-tree-from-preorder-and-inorder-traversal/
+    private int preIndex = 0;
+    public TreeNode buildTree(int[] preorder, int[] inorder) {
+        return buildTreeChild(preorder,inorder,0, inorder.length - 1);
+    }
+    public TreeNode buildTreeChild(int[] preorder, int[] inorder,int inBegin,int inEnd){
+        if(inBegin > inEnd){
+            return null;
+        }
+        TreeNode root = new TreeNode(preorder[preIndex]);
+        int fIndex = findIndex(preorder,inorder);
+        preIndex++;
+        root.left = buildTreeChild(preorder,inorder,inBegin,fIndex - 1);
+        root.right = buildTreeChild(preorder,inorder,fIndex + 1,inEnd);
+        return root;
+    }
+    public int findIndex(int[] preorder,int[] inorder){
+        for (int i = 0; i < inorder.length; i++) {
+            if(inorder[i] == preorder[preIndex]){
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    //https://leetcode.cn/problems/construct-binary-tree-from-inorder-and-postorder-traversal/
+    private int postIndex = 0;
+    public TreeNode buildTree1(int[] inorder, int[] postorder) {
+        postIndex = inorder.length - 1;
+        return buildTreeChild1(postorder,inorder,0, inorder.length - 1);
+    }
+    public TreeNode buildTreeChild1(int[] postorder, int[] inorder,int inBegin,int inEnd){
+        if(inBegin > inEnd){
+            return null;
+        }
+        TreeNode root = new TreeNode(postorder[postIndex]);
+        int fIndex = findIndex1(postorder,inorder);
+        postIndex--;
+        root.right = buildTreeChild1(postorder,inorder,fIndex + 1,inEnd);
+        root.left = buildTreeChild1(postorder,inorder,inBegin,fIndex - 1);
+        return root;
+    }
+    public int findIndex1(int[] postorder,int[] inorder){
+        for (int i = 0; i < inorder.length; i++) {
+            if(inorder[i] == postorder[postIndex]){
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    //https://leetcode.cn/problems/balanced-binary-tree/description/
+
+    /**
+     * 时间复杂度：因为每次都需要从新的root开始向下遍历一边整棵树，所以时间复杂度为O(N ^ 2)
+     * @param root
+     * @return
+     */
+    public boolean isBalanced(TreeNode root) {
+        if(root == null){
+            return true;
+        }
+        return Math.abs(maxDepth(root.left) - maxDepth(root.right)) < 2
+                && isBalanced(root.left)
+                && isBalanced(root.right);
+    }
+
+    private int maxDepth(TreeNode root){
+        if(root == null){
+            return 0;
+        }
+        return Math.max(maxDepth(root.left),maxDepth(root.right)) + 1;
+    }
+
+    /**
+     * 时间复杂度：这次改进了maxDepth方法，使得向上回溯时从最下面的节点开始，每一次都判断是否为平衡二叉树
+     * 从而实现之遍历一次就得出结果
+     * 所以时间复杂度为O(N)
+     * @param root
+     * @return
+     */
+    public boolean isBalanced1(TreeNode root){
+        return maxDepth1(root) >= 0;
+    }
+
+    private int maxDepth1(TreeNode root){
+        if(root == null){
+            return 0;
+        }
+        int leftDepth = maxDepth1(root.left);
+        int rightDepth = maxDepth1(root.right);
+        if(leftDepth >= 0 && rightDepth >= 0
+        && Math.abs(leftDepth - rightDepth) < 2){
+            return Math.max(leftDepth,rightDepth) + 1;
+        }else{
+            return -1;
+        }
+    }
+
+    /**
+     * minDepth和maxDepth有点区别，minDepth不能直接return left 和 right 的最小值
+     * 因为如果root不是叶子节点（root的左或右有一个不为null），还需要返回minDepth(不为空的那个子节点)
+     * 所以需要在最后的return之前判断root是否为叶子节点，即root一边为null，一边不为null时如何返回
+     * @param root
+     * @return
+     */
+    public int minDepth(Solution2.TreeNode root) {
+        if(root == null){
+            return 0;
+        }
+        if(root.left == null){
+            return minDepth(root.right) + 1;
+        }
+        if(root.right == null){
+            return minDepth(root.left) + 1;
+        }
+        return Math.min(minDepth(root.left),minDepth(root.right)) + 1;
     }
 
 }
