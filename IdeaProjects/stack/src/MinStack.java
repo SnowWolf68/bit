@@ -9,23 +9,38 @@ public class MinStack {
     }
 
     public void push(int val) {
-        stack.push(val);
-        if(minStack.empty()){
+        if(stack.empty()){
+            stack.push(val);
             minStack.push(val);
         }else{
-
+            stack.push(val);
+            if(val <= minStack.peek()){ //if there are two minimum, you should push twice
+                minStack.push(val);
+            }
         }
     }
 
     public void pop() {
-
+        if(stack.empty()){
+            return;
+        }
+        int val = stack.pop();
+        if(minStack.peek() == val){
+            minStack.pop();
+        }
     }
 
     public int top() {
-
+        if(stack.empty()){
+            return -1;
+        }
+        return stack.peek();
     }
 
     public int getMin() {
-
+        if(minStack.empty()){
+            return -1;
+        }
+        return minStack.peek();
     }
 }

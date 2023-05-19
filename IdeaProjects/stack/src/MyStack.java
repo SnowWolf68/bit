@@ -1,4 +1,5 @@
 import java.util.Arrays;
+import java.util.Stack;
 
 public class MyStack{
     private int[] elem;
@@ -32,5 +33,19 @@ public class MyStack{
             throw new StackEmptyException("Stack is null!");
         }
         return elem[usedSize - 1];
+    }
+
+    public boolean IsPopOrder(int [] pushA,int [] popA) {
+        Stack<Integer> stack = new Stack<>();
+        int j = 0;
+        for (int i = 0; i < pushA.length; i++) {
+            stack.push(pushA[i]);
+            while(!stack.empty() && j < popA.length
+                    && stack.peek() == popA[j]){
+                stack.pop();
+                j++;
+            }
+        }
+        return stack.empty();
     }
 }
