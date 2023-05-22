@@ -812,3 +812,198 @@ public class Solution {
     }
 ```
 
+### NC5 二叉树根节点到叶子节点的所有路径和
+
+这题本来想再用非递归的遍历方式做，但是发现`StringBuilder`对象中最后一个字符无法及时删除
+
+因为如果当前节点是叶子节点，那么可以直接删除`StringBuilder`对象的最后一个字符，然而在回溯时的其他情况时，`StringBuilder`的最后一个字符何时该删除却不好判断
+
+所以最后还是选择了用递归的方法进行遍历
+
+递归处理这个问题的好处就是，递归可以很容易判断何时回溯到当前节点 -- 当前节点的左右子节点都递归完成之后，代码执行到这里的时候，也就意味着回溯到了当前节点，那么此时删除`StringBuilder`的最后一个字符，就可以轻松解决非递归很难解决的问题
+
+下面是AC代码：
+```java
+	public int sum = 0;
+    public StringBuilder stringBuilder = new StringBuilder();
+    public int sumNumbers (TreeNode root) {
+        // write code here
+        if(root == null){
+            return 0;
+        }
+        getSum(root);
+        return sum;
+    }
+    private void getSum(TreeNode root){
+        if(root == null){
+            return;
+        }
+        stringBuilder.append(root.val);
+        if(root.left == null && root.right == null){
+            sum += Integer.parseInt(stringBuilder.toString());
+            stringBuilder.deleteCharAt(stringBuilder.length() - 1);
+            return;
+        }
+        if(root.left != null){
+            getSum(root.left);
+        }
+        if(root.right != null){
+            getSum(root.right);
+        }
+
+        stringBuilder.deleteCharAt(stringBuilder.length() - 1);
+    }
+```
+
+但是刚才我又问了一下GPT4，他给我了一种不用递归的方法：
+
+GPT4原话：
+
+> 在这个方法中，我们使用两个栈：`nodeStack`用于存储树节点，`sumStack`用于存储当前路径和。当我们从`nodeStack`弹出一个节点时，我们也从`sumStack`弹出它对应的路径和。然后，我们检查当前节点是否为叶子节点。如果是叶子节点，我们将当前路径和累加到总和中。如果不是叶子节点，我们将其子节点及其对应的路径和压入相应的栈。
+>
+> 这个方法能够以非递归的方式实现您所需的功能。
+
+```java
+public class TreeNode {
+    int val;
+    TreeNode left;
+    TreeNode right;
+    TreeNode(int x) { val = x; }
+}
+
+public int sumNumbers(TreeNode root) {
+    if (root == null) {
+        return 0;
+    }
+
+    int sum = 0;
+    Stack<TreeNode> nodeStack = new Stack<>();
+    Stack<Integer> sumStack = new Stack<>();
+    nodeStack.push(root);
+    sumStack.push(root.val);
+
+    while (!nodeStack.isEmpty()) {
+        TreeNode currentNode = nodeStack.pop();
+        int currentSum = sumStack.pop();
+
+        if (currentNode.left == null && currentNode.right == null) {
+            sum += currentSum;
+        }
+
+        if (currentNode.right != null) {
+            nodeStack.push(currentNode.right);
+            sumStack.push(currentSum * 10 + currentNode.right.val);
+        }
+
+        if (currentNode.left != null) {
+            nodeStack.push(currentNode.left);
+            sumStack.push(currentSum * 10 + currentNode.left.val);
+        }
+    }
+
+    return sum;
+}
+```
+
+下面是我按这种方式自己写的代码：
+
+```java
+	public int sumNumbers (TreeNode root) {
+        // write code here
+        if(root == null){
+            return 0;
+        }
+        Stack<TreeNode> nodeStack = new Stack<>();
+        Stack<Integer> sumStack = new Stack<>();
+        nodeStack.push(root);
+        sumStack.push(root.val);
+        int sum = 0;
+        while(!nodeStack.empty()){
+            TreeNode cur = nodeStack.pop();
+            int curSum = sumStack.pop();
+            if(cur.left == null && cur.right == null){
+                sum += curSum;
+            }
+            if(cur.right != null){
+                nodeStack.push(cur.right);
+                sumStack.push(curSum * 10 + cur.right.val);
+            }
+            if(cur.left != null){
+                nodeStack.push(cur.left);
+                sumStack.push(curSum * 10 + cur.left.val);
+            }
+        }
+        return sum;
+    }
+```
+
+虽然这个代码看起来很好懂，然而自己写起来还是有很多问题
+
+首先关于`nodeStack`和`sumStack`的入栈和出栈时机的问题：
+
+`nodeStack`很明显，就是用来遍历这个二叉树的，所以就是正常的出入栈
+
+`sumStack`这里是用来记录当前为止，路径上的所有节点和，所以每次有节点入栈，`sumStack`就要进行更新，同样，如果有元素出栈，`sumStack`也要进行更新
+
+这里还要注意，当有节点出栈的时候，`sumStack`肯定是要进行`pop`操作的，然而此时还不能直接把弹出来的这个`curSum`直接扔掉，因为下一个节点的当前路径和还是要基于这个`curSum`的，所以就先用一个临时变量记录一下
+
+注意这两点写这段代码应该就没什么大问题了
+
+还有一点不是很重要的，就是如果到了当前节点，那么先遍历（入栈）当前节点的左子节点还是先遍历（入栈）当前节点的右子节点其实都是可以的，因为这里并没有要求遍历顺序，所以只要能遍历，先左还是先右都无所谓
+
+### NC8 二叉树中和为某一值的路径(二)
+
+这题读完题感觉和上面那题的方法应该差不多，都是递归然后去搜索
+
+但是真正写起来还是有一点小小的问题，不过问题不大
+
+先放代码：
+
+```java
+	ArrayList<ArrayList<Integer>> ret = new ArrayList<>();
+    ArrayList<Integer> list = new ArrayList<>();
+    int sum = 0;
+    public ArrayList<ArrayList<Integer>> FindPath(TreeNode root,int expectNumber) {
+        if(root == null){
+            return ret;
+        }
+        find(root,expectNumber);
+        return ret;
+    }
+    private void find(TreeNode root,int expectedNumber){
+        if(root == null){
+            return;
+        }
+        list.add(root.val);
+        sum += root.val;
+        if(root.left == null && root.right == null){
+            if(sum == expectedNumber){
+                ret.add(new ArrayList<>(list));
+            }
+            list.remove(list.size() - 1);
+            sum -= root.val;
+            return;
+        }
+        if(root.left != null){
+            find(root.left,expectedNumber);
+        }
+        if(root.right != null){
+            find(root.right,expectedNumber);
+        }
+        list.remove(list.size() - 1);
+        sum -= root.val;
+    }
+```
+
+需要注意一个地方：`ret.add(new ArrayList<>(list));`一开始的时候我直接`ret.add(list)`然后发现最后`ret`里面直接就是空的，把代码拿去调试了一下发现是因为`add`这里添加的是`list`的引用，和之后的`list`共用的一个对象，最后回溯完成之后`list`肯定是空的，那么`ret`中的那个`list`肯定也是空的
+
+解决方法也很简单，就是在添加的时候用`list`再`new`一个新的对象进行添加就好了
+
+还有一点不是很重要的，就是最后提交的时候发现这里路径的顺序有要求，从测试用例上来看，要求应该是先是左边的路径，然后才是右边的路径，所以递归中左右子节点的递归顺序就不能随便来了，而是应该先递归左子节点，然后递归右子节点
+
+注意以上这两小点，这段代码就没什么问题了
+
+做下一题的时候突然想起来，`list`被共用的这个问题也可以通过在函数里面每一次`new`一个新的`list`来解决
+
+只不过我这里把`list`放到了成员位置，所以容易出现被共用的问题
+

@@ -367,7 +367,7 @@ public int getMinimumDifference(TreeNode root) {
 
 但是还是有数据过不了，问了一下gpt：
 
-![image-20230518155403022](C:\Users\zhang\AppData\Roaming\Typora\typora-user-images\image-20230518155403022.png)
+![image-20230518155403022](E:\bit\notes\img\image-20230518155403022.png)
 
 发现这样的代码只考虑了过根节点的情况，还有可能**最大直径是不过根节点的**
 
@@ -763,6 +763,39 @@ emmm上面我的解释有点问题，我又不明白了，于是又去找了GPT4
 乍一看确实很有道理，然而也存在问题
 
 因为是前序遍历，所以当走到其中某一个节点的时候，就需要改变这个节点的左右指针的指向，然而此时需要把这个节点`push`到`stack`中，以便于后续再拿到这个节点的右子节点，此时问题就出现了，哪怕你之前记录了这个节点的左右子节点，然而当这个节点左子树全部遍历完，该走到这个节点的右子树的时候，你会发现由于之前已经把这个节点的右子节点置为`null`所以此时根本找不到这个节点的右子节点，哪怕你之前存过也不行，因为当找右子节点的时候，是从`stack`中弹出栈顶元素，然后找栈顶元素的右子节点
+
+所以这里选择的遍历方式应该是当遇到其中一个根节点时，首先把这个根节点的左右子树都放到栈里，然后再去更改这个节点的左右子节点的指向，这样就不会出现上面所说的问题了
+
+但是有一点需要注意，由于需要先把当前节点的左右节点放在栈里存起来，而且还要求是前序遍历，所以需要先让当前节点的右子节点入栈，然后再让当前节点的左子节点入栈
+
+因为先右边入栈，再左边入栈可以保证先出栈的是左子节点，这样再让左子节点的右子节点和左子节点分别入栈，就可以保证下次出栈的还是左子节点的左子节点（如果有的话），如果没有的话，那就出的是右子节点，正好符合前序遍历的要求
+
+下面是AC代码：
+
+```java
+	public void flatten(TreeNode root) {
+        if(root == null){
+            return;
+        }
+        Stack<TreeNode> stack = new Stack<>();
+        stack.push(root);
+        TreeNode pre = null;
+        while(!stack.empty()){
+            TreeNode top = stack.pop();
+            if(top.right != null){
+                stack.push(top.right);
+            }
+            if(top.left != null){
+                stack.push(top.left);
+            }
+            if(pre != null){
+                pre.right = top;
+            }
+            pre = top;
+            top.left = null;
+        }
+    }
+```
 
 
 
