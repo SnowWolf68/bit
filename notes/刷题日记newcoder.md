@@ -499,3 +499,316 @@ public TreeNode mergeTrees(TreeNode t1, TreeNode t2) {
 
 这一点在和GPT4的交流中也提到过
 
+### BM39 序列化二叉树
+
+这题虽然题目中提供的方法是用层序遍历的结果进行序列化以及反序列化，然而我想试一下用前序序列和中序序列去做，但是在字符串创建和字符串分割当中遇到了一些问题，于是我去问了一下GPT4：
+
+和GPT4的聊天记录：https://poe.com/s/U4viFhJ0i6OnCmdhfiU2
+
+感觉也没有什么好说的，遇到的一些问题在和GPT4交流的时候也都有体现，下面就直接放代码吧：
+
+```java
+	String Serialize(TreeNode root) {
+        if(root == null){
+            return "";
+        }
+        List<Integer> preorder = preorder(root);
+        List<Integer> inorder = inorder(root);
+        StringBuilder stringBuilder = new StringBuilder();
+        for (int i = 0; i < preorder.size(); i++) {
+            if (i == preorder.size() - 1) {
+                stringBuilder.append(preorder.get(i));
+                break;
+            }
+            stringBuilder.append(preorder.get(i));
+            stringBuilder.append(",");
+        }
+        stringBuilder.append(";");
+        for (int i = 0; i < inorder.size(); i++) {
+            if (i == inorder.size() - 1) {
+                stringBuilder.append(inorder.get(i));
+                break;
+            }
+            stringBuilder.append(inorder.get(i));
+            stringBuilder.append(",");
+        }
+        return stringBuilder.toString();
+    }
+    TreeNode Deserialize(String str) {
+        if(str.equals("")){
+            return null;
+        }
+        String[] strs = str.split(";");
+        String preorder = strs[0];
+        String inorder = strs[1];
+        //int[] Intpreorder = new int[preorder.length()];
+        // int index = 0;
+        // for(int i = 0;i < preorder.length();i++){
+        //     if(preorder.charAt(i) == ','){
+        //         continue;
+        //     }
+        //     Intpreorder[index++] = preorder.charAt(i);
+        // }
+        //int[] Intinorder = new int[inorder.length()];
+        // index = 0;
+        // for(int i = 0;i < inorder.length();i++){
+        //     if(inorder.charAt(i) == ','){
+        //         continue;
+        //     }
+        //     Intinorder[index++] = inorder.charAt(i);
+        // }
+        int[] Intpreorder = Arrays.stream(preorder.split(","))
+            .mapToInt(Integer:: parseInt)
+            .toArray();
+        int[] Intinorder = Arrays.stream(inorder.split(","))
+            .mapToInt(Integer::parseInt)
+            .toArray();
+        TreeNode root = buildTree(Intpreorder, Intinorder);
+        return root;
+    }
+    public int preIndex;
+    private TreeNode buildTree(int[] preorder, int[] inorder) {
+        return buildTreeChild(preorder, inorder, 0, inorder.length - 1);
+    }
+    private TreeNode buildTreeChild(int[] preorder, int[] inorder, int start,int end) {
+        if (start > end) {
+            return null;
+        }
+        int fIndex = findIndex(preorder, inorder);
+        TreeNode cur = new TreeNode(preorder[preIndex++]);
+        cur.left = buildTreeChild(preorder, inorder, start, fIndex - 1);
+        cur.right = buildTreeChild(preorder, inorder, fIndex + 1, end);
+        return cur;
+    }
+    private int findIndex(int[] preorder, int[] inorder) {
+        for (int i = 0; i < inorder.length; i++) {
+            if (inorder[i] == preorder[preIndex]) {
+                return i;
+            }
+        }
+        return -1;
+    }
+    private List<Integer> preorder(TreeNode root) {
+        List<Integer> ret = new ArrayList<>();
+        if (root == null) {
+            return ret;
+        }
+        Stack<TreeNode> stack = new Stack<>();
+        TreeNode cur = root;
+        while (cur != null || !stack.isEmpty()) {
+            while (cur != null) {
+                stack.push(cur);
+                ret.add(cur.val);
+                cur = cur.left;
+            }
+            TreeNode top = stack.pop();
+            cur = top.right;
+        }
+        return ret;
+    }
+    private List<Integer> inorder(TreeNode root) {
+        List<Integer> ret = new ArrayList<>();
+        if (root == null) {
+            return ret;
+        }
+        Stack<TreeNode> stack = new Stack<>();
+        TreeNode cur = root;
+        while (cur != null || !stack.isEmpty()) {
+            while (cur != null) {
+                stack.push(cur);
+                cur = cur.left;
+            }
+            TreeNode top = stack.pop();
+            ret.add(top.val);
+            cur = top.right;
+        }
+        return ret;
+    }
+```
+
+但是我还是有一点问题，又问了一下GPT4，记录如下：
+
+https://poe.com/s/4YiqCPlqNi0xeh3TiWSU
+
+附几张截图：
+
+<img src="E:\bit\notes\img\image-20230520101708206.png" alt="image-20230520101708206" style="zoom: 50%;" />
+
+<img src="E:\bit\notes\img\image-20230520101750351.png" alt="image-20230520101750351" style="zoom:50%;" />
+
+可以看出修改过后就能通过二叉树的节点值为一位正数的测试点了
+
+### BM43 包含min函数的栈
+
+这是一道很简单的题，之前博哥也带着写过，但是自己写的时候还是遇到了一点问题
+
+主要的问题有两点：
+
+1.`push()`方法中，如果当前的`node`值和`minStack`最小栈的栈顶元素相同时，`minStack`中也需要`push`进当前元素，所以不能用`<`比较，应该用`<=`进行比较
+
+因为如果不往`minStack`中入栈的话，如果有多个相同的最小值，当`pop`出一个以后，这个最小值就没了，所以如果有多个相等的最小值时，要在`minStack`中添加相同个数的这个最小值
+
+2.关于`Integer`对象的比较问题
+
+当两个`Integer`对象在进行算数运算的时候确实会进行自动拆箱操作，但是我误以为两个`Integer`对象在进行`==`号比较的时候也会进行自动拆箱操作
+
+其实后来想一想，`==`号对于引用数据类型（包括`Integer`这种的包装类来说），肯定是比较的两者的地址值，这是毫无疑问的
+
+可能是因为之前写了一个`int`和`Integer`类型的比较`node <= minStack.peek()`会自动拆箱让我误以为这里的`==`号也会进行自动拆箱
+
+这个地方本来不应该错的
+
+看看我糊涂的时候和GPT4的聊天记录：https://poe.com/s/2D0BW3VdM2FjJ2ncIcTr
+
+后来想想这个地方当时没想清楚真的很不应该
+
+突然发现忘记贴AC代码了，那就贴一下：
+
+```java
+public class Solution {
+    Stack<Integer> stack = new Stack<>();
+    Stack<Integer> minStack = new Stack<>();
+    
+    public void push(int node) {
+        if(stack.empty()){
+            stack.push(node);
+            minStack.push(node);
+        }else{
+            if(node <= minStack.peek()){
+                minStack.push(node);
+            }
+            stack.push(node);
+        }
+    }
+    
+    public void pop() {
+        if(stack.peek().equals(minStack.peek())){
+            minStack.pop();
+        }
+        stack.pop();
+    }
+    
+    public int top() {
+        return stack.peek();
+    }
+    
+    public int min() {
+        return minStack.peek();
+    }
+}
+```
+
+### BM44 有效括号序列
+
+同样是做过的题，但是在这次做的时候还是不能一次AC，难受
+
+还是记录一下我的错误吧：
+
+我一开始的想法是，在第一次遍历时如果遇到左括号，就添加对应的右括号
+
+然后这次遍历完成之后，再重新遍历一次，这次是如果遇到和栈顶元素相同的右括号，就从栈中弹出栈顶元素
+
+然而这样显然是错误的
+
+错误原因感觉也不好解释，反正正确的做法就是在一次遍历中，入栈的同时判断是否需要出栈，如果需要，就出栈
+
+下面放一下AC代码吧
+
+这种代码我都不能AC，感觉好丢人
+
+```java
+	public boolean isValid (String s) {
+        // write code here
+        Stack<Character> stack = new Stack<>();
+        for(int i = 0;i < s.length();i++){
+            if(s.charAt(i) == '('){
+                stack.push(')');
+            }else if(s.charAt(i) == '['){
+                stack.push(']');
+            }else if(s.charAt(i) == '{'){
+                stack.push('}');
+            }
+            if(stack.empty()){
+                return false;
+            }
+            if(s.charAt(i) == stack.peek()){
+                stack.pop();
+            }
+        }
+        if(stack.empty()){
+            return true;
+        }else{
+            return false;
+        }
+    }
+```
+
+### BM45 滑动窗口的最大值
+
+这题感觉和之前最小栈那题很像，但是自己想了一下还是不会做，只能去看了一下题解
+
+题解中有一段话是这样说的：
+
+> 我们都知道，若是一个数字A进入窗口后，若是比窗口内其他数字都大，那么这个数字之前的数字都没用了，因为它们必定会比A早离开窗口，在A离开之前都争不过A，所以A在进入时依次从尾部排除掉之前的小值再进入，而每次窗口移动要弹出窗口最前面值，因此队首也需要弹出，所以我们选择双向队列。
+
+也就是说，该双端队列的队尾元素永远都是当前窗口的最大值
+
+当向前滑动一次的时候：
+
+入队：
+
+如果新的元素比当前队头元素大，那么从队头循环弹出所有比新元素小的元素，然后再让新的元素头进队列
+
+如果新的元素比当前队头元素小，那么可以直接头进队列
+
+出队：
+
+判断当前滑动窗口中要滑出去的元素和队尾元素相不相等，如果相等，那么队尾元素也要出队
+
+如果不相等，那么队尾元素无需出队
+
+在入队和出队都完成之后，此时的队尾元素就是当前滑动窗口的最大值了，那么此时再把队尾元素`add`进`ret`结果列表就可以了
+
+下面是AC代码：
+
+```java
+    /*
+    用队列来模拟这个过程
+    首先对于前size个元素：
+        如果双端队列为空，直接头进队列
+        如果不为空，从队头把所有比当前元素小的都出队，然后当前元素再头进队列
+    每次滑动一格，都判断数组当前元素和双端队列队尾元素是否相等，如果相等，就出队
+                                                           如果不等，那就继续向后滑动
+    因为头尾都要进，出，所以选择双端队列Deque
+    */
+    public Deque<Integer> deque = new LinkedList<>();
+    public ArrayList<Integer> maxInWindows(int [] num, int size) {
+        if (size == 0 || size > num.length) {
+            return new ArrayList<Integer>();
+        }
+        for (int i = 0; i < size; i++) {
+            add(num[i]);
+        }
+        ArrayList<Integer> ret = new ArrayList<>();
+        ret.add(deque.getLast());
+        for (int i = size; i < num.length; i++) {
+            if(num[i - size] == deque.getLast()){
+                deque.pollLast();
+            }
+            add(num[i]);
+            ret.add(deque.getLast());
+        }
+        return ret;
+    }
+    private void add(int val) {
+        if (deque.isEmpty()) {
+            deque.addFirst(val);
+        } else {
+            while (!deque.isEmpty() && deque.getFirst() < val) {
+                deque.pollFirst();
+            }
+            deque.addFirst(val);
+        }
+    }
+```
+

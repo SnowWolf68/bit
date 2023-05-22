@@ -449,9 +449,6 @@ emmm上面我的解释有点问题，我又不明白了，于是又去找了GPT4
         if(start > end){
             return null;
         }
-        if(start == end){
-            return new TreeNode(preorder[preIndex++]);
-        }
         int fIndex = findIndex(preorder,inorder);
         TreeNode cur = new TreeNode(preorder[preIndex++]);
         cur.left = buildTreeChild(preorder,inorder,start,fIndex - 1);
@@ -467,6 +464,305 @@ emmm上面我的解释有点问题，我又不明白了，于是又去找了GPT4
         return -1;
     }
 ```
+
+
+
+### 106.从中序与后序遍历序列构造二叉树
+
+这题跟上面那题差不多，但是还是没有一遍过，所以想着还是再整理一下思路
+
+中序和后序建立二叉树和中序和前序建立二叉树的区别就在与找根节点的顺序
+
+中序和前序建立二叉树时，前序序列从前往后遍历的每一个就是当前子树的根节点，因为前序遍历的顺序是（根，左，右）
+
+而中序和后续建立二叉树时，每一个根节点应该是后序遍历序列从最后一个元素依次向前遍历，因为后续遍历的顺序是（左，右，根）
+
+以上的差别在代码中表现为下面两点区别：
+
+1.之前每次建立的根节点在`preorder`中的下标是用`preIndex`来记录的，并且`preIndex`是从`0`开始遍历，一直到`preorder.length - 1`结束，那么后序遍历的下标`postIndex`就应该从`postorder`的最后一个元素`postorder.length - 1`开始，并且向前遍历
+
+2.这点很容易被忽略，就是当前根节点创建好了之后，左右子节点的创建顺序，在前序和中序创建二叉树的时候，顺序是先左子节点，再右子节点，这是因为前序遍历的顺序就是先根，再左子树，再右子树
+
+而到了后序，由于后序遍历的顺序是先左子节点，再右子节点，最后才是根节点，并且`postIndex`是从后序序列的最后一个开始向前遍历的，所以当根创建好了之后，应该先递归创建右子树，然后才是递归创建左子树
+
+但是这里可能会有一个疑问，就是根已经创建好了，那么创建左右子树的区间肯定是位于中序遍历中根节点位置的左右两侧，那么先创建左子树还是先创建右子树不是没有区别吗？
+
+但实际上不是这样的，因为还有一个大的前提，就是`postIndex`是从`postorder`的最后一个开始向前遍历的，所以当`postIndex`走到当前的根节点之后，那么它下一个走到的应该是当前根节点的右子节点，而每次创建子树都是根据`postIndex`位置上的元素以及该元素在`inorder`中的位置进行创建的，所以如果还是先创建左子树，再创建右子树的话，那么就会出现，在当前节点的左子树中寻找当前节点的右子节点的情况，那么这样肯定是错误的
+
+注意这两个问题以后，代码应该就没有什么问题了，下面是AC代码：
+
+```java
+	public int postIndex;
+    public TreeNode buildTree(int[] inorder, int[] postorder) {
+        postIndex = inorder.length - 1;//不同点1
+        return buildTreeChild(inorder,postorder,0,inorder.length - 1);
+    }
+    private TreeNode buildTreeChild(int[] inorder,int[] postorder,int start,int end){
+        if(start > end){
+            return null;
+        }
+        int fIndex = findIndex(inorder,postorder);
+        TreeNode cur = new TreeNode(postorder[postIndex--]);
+        cur.right = buildTreeChild(inorder,postorder,fIndex + 1,end);//不同点2
+        cur.left = buildTreeChild(inorder,postorder,start,fIndex - 1);
+        return cur;
+    }
+    private int findIndex(int[] inorder,int[] postorder){
+        for(int i = 0;i < inorder.length;i++){
+            if(inorder[i] == postorder[postIndex]){
+                return i;
+            }
+        }
+        return -1;
+    }
+```
+
+### 面试题 17.14. 最小K个数
+
+在做牛客上的题的时候，遇到了Top K问题，于是想着先再来复习一下最基本的Top K问题
+
+上链接：[面试题 17.14. 最小K个数 - 力扣（Leetcode）](https://leetcode.cn/problems/smallest-k-lcci/description/)
+
+具体思路就是先建立相反的堆（大根堆），然后遍历原来的数组，如果是在前k个之内，那么就直接添加到堆中
+
+如果是前k个之外，那么就要首先`peek`一下堆顶元素，和当前数组中的元素进行比较，如果当前元素小于堆顶元素，那么就把堆顶元素`poll`出来，然后`offer`进数组当前的元素
+
+否则的话就继续遍历当前数组中的下一个元素
+
+最后把堆中的元素全部`poll`出来放在`int`数组中就行了，但是要注意此时顺序`poll`出来的元素的顺序是正好反过来的，也就是说此时`int`数组中的元素是一个**降序**的序列，如果我们想获得从小到大（升序）的序列的话，需要再手动逆序一下
+
+这里注明一点，如果是`Collection`类的话，可以用`Collections`工具类中的`reverse`进行快速逆序，但是本题的返回值是`int[]`
+
+不过本题并没有要求这k个元素的返回顺序，所以也不用管这一点
+
+下面是AC代码：
+
+```java
+	public int[] smallestK(int[] arr, int k) {
+        int[] ret = new int[k];
+        if(k == 0){
+            return ret;
+        }
+        // PriorityQueue<Integer> maxHeap = new PriorityQueue<>(new Comparator<Integer>(){
+        //     @Override
+        //     public int compare(Integer o1,Integer o2){//匿名内部类
+        //         return o2 - o1;
+        //     }
+        // });
+        PriorityQueue<Integer> maxHeap = new PriorityQueue<>((o1,o2) -> o2 - o1);//lambda表达式
+        for(int i = 0;i < k;i++){
+            maxHeap.offer(arr[i]);
+        }
+        for(int i = k;i < arr.length;i++){
+            int top = maxHeap.peek();
+            if(arr[i] < top){
+                maxHeap.poll();
+                maxHeap.offer(arr[i]);
+            }
+        }
+        for(int i = 0;i < k;i++){
+            ret[i] = maxHeap.poll();
+        }
+        return ret;
+    }
+```
+
+有一点需要注意的是，之前创建大根堆采用的方法是写一个`Imp`类实现`Comparator`接口，然后重写`Comparator`接口中的`Compare`函数
+
+但是这一步可以简化，从源码中可以看到，`Comparator`接口是一个函数式接口
+
+![image-20230520114544525](E:\bit\notes\img\image-20230520114544525.png)
+
+所以可以使用匿名内部类来简化
+
+除此之外，还可以使用lambda表达式进一步简化匿名内部类的写法
+
+以上的两种方法在上面的代码中均有体现
+
+### 95.不同的二叉搜索树 II
+
+如何找到所有的情况？ -- 遍历当前数组，让每一个元素都当一次根节点
+
+对于其中的某一个根节点，以这个节点为根的所有二叉树的情况可以转换为**左子树和右子树各自所有种类的任意组合**
+
+也就是说对于任意节点，可以首先递归左右子树，返回两个分别包含左右子树所有情况的List集合，然后对于根节点，可以用两个循环分别遍历左右子树的所有情况，然后分别链接到当前的根节点上
+
+注意：
+
+这里对左右子树的递归调用（也相当于左右子树的建立）是在根绑定左右子树之前，原因也很好理解，因为首先要有左右子树，然后才能有左右子树的父节点
+
+
+
+下面是AC代码：
+
+```java
+	public List<TreeNode> generateTrees(int n) {
+        return generateTreesChild(1,n);
+    }
+    private List<TreeNode> generateTreesChild(int start,int end){
+        List<TreeNode> ret = new ArrayList<>();
+        if(start > end){
+            ret.add(null);
+            return ret;
+        }
+        for(int i = start;i <= end;i++){
+            List<TreeNode> leftRoot = generateTreesChild(start,i - 1);
+            List<TreeNode> rightRoot = generateTreesChild(i + 1,end);
+            for(int j = 0;j < leftRoot.size();j++){
+                for(int k = 0;k < rightRoot.size();k++){
+                    TreeNode root = new TreeNode(i);//1
+                    root.left = leftRoot.get(j);
+                    root.right = rightRoot.get(k);
+                    ret.add(root);
+                }
+            }
+        }
+        return ret;
+    }
+```
+
+有一点需要注意：
+
+一开始我以为**注释1处**的代码可以放在j，k两层循环外面，i循环里面，也就是：
+
+```java
+		for(int i = start;i <= end;i++){
+            TreeNode root = new TreeNode(i);//1
+            List<TreeNode> leftRoot = generateTreesChild(start,i - 1);
+            List<TreeNode> rightRoot = generateTreesChild(i + 1,end);
+            for(int j = 0;j < leftRoot.size();j++){
+                for(int k = 0;k < rightRoot.size();k++){
+                    root.left = leftRoot.get(j);
+                    root.right = rightRoot.get(k);
+                    ret.add(root);
+                }
+            }
+        }
+```
+
+然而，这样是不可以的
+
+因为虽然`root`的值不会有影响（因为都在i这层循环里面），但是由于每次都需要把添加完左右子树的`root`添加到`ret`集合中进行返回，并且每次在j，k循环中添加的左右子树都是不相同的，所以一旦把`root`的创建放在j，k循环外面，就会导致最后加到`ret`集合中的都是同一个`root`，无法达到添加所有种类的树的效果
+
+### 99.恢复二叉搜索树
+
+看到二叉搜索树，反手就先写一个中序遍历，虽然这个中序遍历我也写错了，这个后面再说
+
+首先拿到中序序列，由于两个元素发生了交换，所以考虑两种情况：
+
+1. 如果是两个相邻的元素发生了错误的的交换：
+
+   那么在遍历整个序列的时候，会有一个位置的元素（设为`pos1`下标）大于其后面位置的元素，而发生交换的位置就应该是`pos1`下标和`pos1 + 1`下标，恢复的方法就是把这两个位置的元素再进行一次交换
+
+2. 如果是两个不相邻的元素发生了错误的交换：
+
+   那么在遍历整个序列的时候，假设有两个位置的元素（分别设为`pos1`和`pos2`下标）那么发生交换的两个位置就应该是`pos1`位置和`pos2 + 1`位置，恢复方法还是对这两个位置的元素进行交换即可
+
+下面是AC代码：
+```java
+	public void recoverTree(TreeNode root) {
+        List<TreeNode> inorderList = inorderTraversal(root);
+        int pos1 = -1;
+        int pos2 = -1;
+        for(int i = 0;i < inorderList.size() - 1;i++){
+            if(inorderList.get(i).val > inorderList.get(i + 1).val && pos1 == -1){
+                pos1 = i;
+                continue;
+            }
+            if(inorderList.get(i).val > inorderList.get(i + 1).val && pos1 != -1){
+                pos2 = i;
+            }
+        }
+        if(pos2 == -1){
+            int t = inorderList.get(pos1).val;
+            inorderList.get(pos1).val = inorderList.get(pos1 + 1).val;
+            inorderList.get(pos1 + 1).val = t;
+        }else{
+            int t = inorderList.get(pos1).val;
+            inorderList.get(pos1).val = inorderList.get(pos2 + 1).val;
+            inorderList.get(pos2 + 1).val = t;
+        }
+    }
+    private List<TreeNode> inorderTraversal(TreeNode root){
+        List<TreeNode> ret = new ArrayList<>();
+        if(root == null){
+            return ret;
+        }
+        Stack<TreeNode> stack = new Stack<>();
+        //stack.push(root);		//一开始我这里多写了这样一行代码，就导致中序遍历得到的结果就是错误的
+        TreeNode cur = root;
+        while(cur != null || !stack.empty()){
+            while(cur != null){
+                stack.push(cur);
+                cur = cur.left;
+            }
+            TreeNode top = stack.pop();
+            ret.add(top);
+            cur = top.right;
+        }
+        return ret;
+    }
+```
+
+一开始中序遍历的循环外面我多写了一个`stack.push(root)`的代码，就导致中序遍历得到的结果就是错误的了
+
+### 113.路径总和 II
+
+还是采用**子树**的思想，在当前节点找和为`targetSum`，就可以转化为在左右子树中找和为`targetSum - root.val`
+
+所以可以定义一个`sum`，每到一个节点都让`sum += root.val`
+
+当当前节点的左右节点都为`null`时，说明此时已经到了叶子节点，判断当前路径是否等于`targetSum`只需要判断当前`sum`是否等于`targetSum`即可
+
+反之，如果当前节点不为叶子节点，那么就需要继续递归当前节点的左右子节点，同时让`sum += root.val`
+
+但这里要注意：由于这个函数是进行递归调用，并且`sum`是基本数据类型，所以下一层的`sum += root.val`并不会影响上一层的`sum`的值，所以再进行下一次左右子树的寻找的时候不需要进行`sum -= root.val`
+
+然而，对于每一次用来记录根节点到当前节点路径的`list`集合来说，不管是定义成成员变量也好，或者是说放进函数的形参每次都传进来也好，由于是引用类型，所以自始至终都是操作的同一个`list`集合，所以当当前节点的左右节点都遍历完成之后，要回退到上一个节点（父节点）继续尝试其他可能的时候，需要把当前的节点`root`在`list`集合中弹出来，也就是说每一次递归的函数结束的时候，都要加上一句`list.remove(list.size() - 1)`以弹出当前的节点
+
+下面是AC代码：
+```java
+	public List<List<Integer>> pathSum(TreeNode root, int targetSum) {
+        List<List<Integer>> ret = new ArrayList<>();
+        List<Integer> list = new ArrayList<>();
+        int sum = 0;
+        pathSumChild(root,targetSum,ret,list,sum);
+        return ret;
+    }
+
+    private void pathSumChild(TreeNode root, int targetSum, List<List<Integer>> ret, List<Integer> list,int sum) {
+        if(root == null){
+            return;
+        }
+        sum += root.val;
+        list.add(root.val);
+        if(root.left == null && root.right == null){
+            if(sum == targetSum){
+                ret.add(new ArrayList(list));
+            }
+        }else{
+            pathSumChild(root.left,targetSum,ret,list,sum);
+            pathSumChild(root.right,targetSum,ret,list,sum);
+        }
+        list.remove(list.size() - 1);
+    }
+```
+
+### 114.二叉树展开为链表
+
+这题我本来想着是按照**前序遍历非递归打印二叉树的那种遍历方式**进行遍历，但是错了好多次之后发现那样遍历不大行，原因是：
+
+因为这题目的是要把二叉树展开为链表，所以会牵扯到当前节点左右节点的指向的改变
+
+然而前序遍历非递归打印二叉树的方法中，对于某一个节点，在找这个节点的左右子树的时候采用的方法是通过`cur = cur.left`或`cur = top.right`来找，也就是说这种方法中`cur`的左右指针是不能发生改变的
+
+然而这题要求必然会改变`cur`左右指针的指向，所以不能使用那种遍历方式
+
+但是可能会这样想：能不能在改变左右指针指向之前先记录一下左右指针的指向，然后再改变呢？
+
+乍一看确实很有道理，然而也存在问题
+
+因为是前序遍历，所以当走到其中某一个节点的时候，就需要改变这个节点的左右指针的指向，然而此时需要把这个节点`push`到`stack`中，以便于后续再拿到这个节点的右子节点，此时问题就出现了，哪怕你之前记录了这个节点的左右子节点，然而当这个节点左子树全部遍历完，该走到这个节点的右子树的时候，你会发现由于之前已经把这个节点的右子节点置为`null`所以此时根本找不到这个节点的右子节点，哪怕你之前存过也不行，因为当找右子节点的时候，是从`stack`中弹出栈顶元素，然后找栈顶元素的右子节点
 
 
 
