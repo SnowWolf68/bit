@@ -1007,3 +1007,176 @@ public int sumNumbers(TreeNode root) {
 
 只不过我这里把`list`放到了成员位置，所以容易出现被共用的问题
 
+### NC98 判断t1树中是否有与t2树完全相同的子树
+
+这题不是一道难题，但是做的时候思路还是没有那么清晰，还是写一下吧
+
+由于是要在`t1`中找是不是有`t2`的子树，所以应该拿着`t2`这棵树去和`t1`的每一个子树进行比较
+
+这里选择用递归来进行遍历`t1`这棵树
+
+对于`t1`中的某一个节点，先判断当前`t1`的这棵子树是不是和`t2`是相同的树，如果是，那么返回`true`，如果不是，继续递归当前节点的左右子节点，判断以左右子节点为根节点的子树是不是和`t2`是相同的树
+
+这样大概一写思路就差不多知道应该怎么写代码了
+
+**判断两棵树是否相同的`isSameTree`这个函数肯定是必不可少的**
+
+下面是AC代码：
+```java
+	public boolean isContains (TreeNode root1, TreeNode root2) {
+        // write code here
+        if(root1 == null && root2 == null){
+            return true;
+        }else if(root1 == null && root2 != null 
+        || root1 != null && root2 == null){
+            return false;
+        }else{
+            if(isSameTree(root1,root2)){
+                return true;
+            }else{
+                return isContains(root1.left,root2) || isContains(root1.right,root2);
+            }
+        }
+
+    }
+    private boolean isSameTree(TreeNode root1,TreeNode root2){
+        if(root1 == null && root2 == null){
+            return true;
+        }else if(root1 != null && root2 != null){
+            if(root1.val == root2.val){
+                return isSameTree(root1.left,root2.left) 
+                && isSameTree(root1.right,root2.right);
+            }else{
+                return false;
+            }
+        }else{
+            return false;
+        }
+    }
+```
+
+下面是GPT4提供的如果把`isSameTree`函数写在`isContains`函数里面，只用一个函数进行递归调用的方法
+
+这样写很明显就不如把`isSameTree`拿出来，在`isContains`函数的递归过程中如果需要的话随时调用方便
+
+```java
+public class TreeNode {
+    int val = 0;
+    TreeNode left = null;
+    TreeNode right = null;
+
+    public TreeNode(int val) {
+        this.val = val;
+    }
+}
+
+public class Solution {
+    public boolean isContains(TreeNode root1, TreeNode root2) {
+        return isContains(root1, root2, false);
+    }
+
+    private boolean isContains(TreeNode root1, TreeNode root2, boolean checkSameTree) {
+        if (root1 == null && root2 == null) {
+            return true;
+        } else if (root1 == null || root2 == null) {
+            return false;
+        } else {
+            if (checkSameTree) {
+                // Check if the trees are the same
+                return root1.val == root2.val
+                        && isContains(root1.left, root2.left, true)
+                        && isContains(root1.right, root2.right, true);
+            } else {
+                // Check if the current subtree is the same as root2
+                if (isContains(root1, root2, true)) {
+                    return true;
+                }
+                // Recursively check the left and right subtrees
+                return isContains(root1.left, root2, false) || isContains(root1.right, root2, false);
+            }
+        }
+    }
+}
+```
+
+### NC162 二叉树中和为某一值的路径(三)
+
+因为路径不规定必须从根节点到叶子节点，而是从父节点到子节点的路径就算是有效的，所以要把路径从任意一个节点开始都考虑进去
+
+直接的方法就是进行两次遍历，第一次遍历是遍历整棵树，其中的每一个节点都当作是当前路径的开始节点
+
+第二次遍历就是从开始节点向下进行遍历，遍历的同时判断路径上的节点和是不是等于`sum`
+
+但是这里有一个坑
+
+就是当确定了当前路径的开始节点，遍历开始节点下面的每一个节点来找路径的时候，如果当前路径上的节点值的和等于`sum`时，还不能直接`return`回上一层递归，而是要继续遍历当前节点的左右子节点，继续进行递归
+
+原因是，因为这棵二叉树的节点值并不是全部大于等于0的，也就意味着`1->2->3`满足要求，`1->2->3->0`也满足要求，甚至`1->2->3->0->(-1)->1`也是满足要求的
+
+所以如果当前路径上的节点值之和等于`sum`的时候，不能直接`return`，而是应该继续遍历当前节点的左右子节点
+
+```java
+	public int count = 0;
+    public int FindPath (TreeNode root, int sum) {
+        // write code here
+        if(root == null){
+            return 0;//这里return什么都无所谓
+        }
+        find(root,sum);
+        FindPath(root.left,sum);
+        FindPath(root.right,sum);
+        return count;
+    }
+    private void find(TreeNode root,int sum){
+        if(root == null){
+            return;
+        }
+        sum -= root.val;
+        if(sum == 0){
+            count++;
+            //return;
+        }
+        find(root.left,sum);
+        find(root.right,sum);
+    }
+```
+
+下面是用哈希表的写法：
+
+```java
+	public int FindPath(TreeNode root, int sum) {
+        // 创建一个哈希表来存储累加和及其出现的次数
+        Map<Integer, Integer> prefixSumCount = new HashMap<>();
+        // 初始化哈希表，将和为 0 的路径的数量设置为 1
+        prefixSumCount.put(0, 1);
+        // 调用递归函数进行遍历
+        return findPathWithHash(root, prefixSumCount, 0, sum);
+    }
+
+    private int findPathWithHash(TreeNode root,
+                                 Map<Integer, Integer> prefixSumCount, int currentSum, int target) {
+        // 如果当前节点为 null，返回 0
+        if (root == null) {
+            return 0;
+        }
+
+        // 计算从根节点到当前节点的累加和
+        currentSum += root.val;
+        // 检查 currentSum - target 是否在哈希表中，如果在，将对应的值赋给 count，否则赋值为 0
+        int count = prefixSumCount.getOrDefault(currentSum - target, 0);
+        // 更新哈希表，将当前累加和的路径数量加 1
+        prefixSumCount.put(currentSum, prefixSumCount.getOrDefault(currentSum, 0) + 1);
+
+        // 递归遍历左右子树，并将找到的满足条件的路径数量加到 count 中
+        count += findPathWithHash(root.left, prefixSumCount, currentSum, target) +
+                 findPathWithHash(root.right, prefixSumCount, currentSum, target);
+
+        // 回溯：在返回上一层之前，将当前累加和的路径数量减 1
+        prefixSumCount.put(currentSum, prefixSumCount.get(currentSum) - 1);
+
+        // 返回找到的满足条件的路径数量
+        return count;
+    }
+```
+
+实在是看不懂ing
