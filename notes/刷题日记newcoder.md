@@ -1099,6 +1099,109 @@ public class Solution {
 }
 ```
 
+### NC273 树的子结构
+
+注意这题和上一题的区别：
+
+上一题要求是**子树**，而这一题要求是**子结构**
+
+也就意味着：
+
+1. 如果`root2`为`null`，不管`root1`是不是`null`，都需要返回`false`（这点我是从测试数据里面看出来的，如果不改就会有两组数据过不了）
+2. 如果在判断两棵树是否相同时，`root2 == null`，此时意味着`root2`已经完全匹配完了，并且没有返回`false`，说明此时`root2`为根的树就是`root1`的子结构，所以也应该返回`true`
+
+只有这两处不同，下面是代码：
+
+先写一下判断是不是子树的代码：
+
+```java
+	public boolean isContains(TreeNode root1, TreeNode root2) {
+        if(root1 == null && root2 == null){
+            return true;
+        }
+        if (root1 == null && root2 != null) {
+            return false;
+        }
+        if (isSameTree(root1, root2)) {
+            return true;
+        }
+        return isContains(root1.left, root2)
+               || isContains(root1.right, root2);
+    }
+    private boolean isSameTree(TreeNode root1, TreeNode root2) {
+        if (root1 == null && root2 == null) {
+            return true;
+        }
+        if (root1 == null && root2 != null
+                || root1 != null && root2 == null) {
+            return false;
+        }
+        if (root1.val == root2.val) {
+            return isSameTree(root1.left, root2.left)
+                   && isSameTree(root1.right, root2.right);
+        } else {
+            return false;
+        }
+    }
+```
+
+相较于上题的写法，这里做了一些优化：
+
+在`isSameTree`函数中只是换了一种表达方式，写法还没有变
+
+在`isContains`函数中，省略掉前两个`if`分支，因为这两种情况在下面的`isSameTree`函数中都会判断
+
+直接开始判断`isSameTree(root1,root2)`
+
+但是这样的修改又可能导致`NullPointerException`，原因是：如果`root1 == null`，那么`isSameTree`函数会返回一个`false`，那么就不会进`if`，会继续走到下面的`isContains(root1.left, root2) || isContains(root1.right, root2);`中，此时就会出现空指针异常
+
+对应的修改方法就是在一开始加一个判断，即如果`root1 == null`，那么第一棵树中明显不可能有第二棵树的子树，需要返回`false`
+
+但这样还有一个前提，就是`root2 != null`，因为一旦`root1`和`root2`都为空，很明显也应该返回一个`true`，所以还需要再加一个判断
+
+所以最后就改成了上面这个样子
+
+然后再把上面的代码修改之前提到的两处不同，于是就有了这题的代码：
+
+```java
+	public boolean HasSubtree(TreeNode root1, TreeNode root2) {
+        if(root2 == null){
+            return false;
+        }
+        if(root1 == null && root2 == null){
+            return true;
+        }
+        if (root1 == null && root2 != null) {
+            return false;
+        }
+        if (isSameTree(root1, root2)) {
+            return true;
+        }
+        return HasSubtree(root1.left, root2)
+               || HasSubtree(root1.right, root2);
+    }
+    private boolean isSameTree(TreeNode root1, TreeNode root2) {
+        if(root2 == null){
+            return true;
+        }
+        if (root1 == null && root2 == null) {
+            return true;
+        }
+        if (root1 == null && root2 != null
+                || root1 != null && root2 == null) {
+            return false;
+        }
+        if (root1.val == root2.val) {
+            return isSameTree(root1.left, root2.left)
+                   && isSameTree(root1.right, root2.right);
+        } else {
+            return false;
+        }
+    }
+```
+
+
+
 ### NC162 二叉树中和为某一值的路径(三)
 
 因为路径不规定必须从根节点到叶子节点，而是从父节点到子节点的路径就算是有效的，所以要把路径从任意一个节点开始都考虑进去
@@ -1180,3 +1283,147 @@ public class Solution {
 ```
 
 实在是看不懂ing
+
+### NC204 二叉树的最大宽度
+
+读完题目首先想到的就是用层序遍历，但是中间会有空的节点，如果把空的节点也添加到层序遍历的`queue`中的话，比较难搞，于是问了一下GPT4：
+
+> 我理解你的需求，你想使用层序遍历（BFS）来求解二叉树的最大宽度。下面是一个基于层序遍历的解决方案，我在代码中添加了详细的注释来解释每一步。
+>
+> ```java
+> import java.util.LinkedList;
+> import java.util.Queue;
+> 
+> class TreeNode {
+>     int val;
+>     TreeNode left;
+>     TreeNode right;
+>     TreeNode(int x) { val = x; }
+> }
+> 
+> public class Solution {
+>     public int widthOfBinaryTree(TreeNode root) {
+>         // 如果根节点为 null，则宽度为 0
+>         if (root == null) {
+>             return 0;
+>         }
+> 
+>         int maxWidth = 0; // 记录最大宽度
+>         Queue<TreeNode> nodeQueue = new LinkedList<>(); // 存储节点的队列
+>         Queue<Integer> indexQueue = new LinkedList<>(); // 存储节点位置的队列
+> 
+>         // 将根节点和索引（1）添加到队列中
+>         nodeQueue.offer(root);
+>         indexQueue.offer(1);
+> 
+>         // 当队列不为空时，执行循环
+>         while (!nodeQueue.isEmpty()) {
+>             int levelSize = nodeQueue.size(); // 当前层的节点数量
+>             int leftMostIndex = indexQueue.peek(); // 当前层最左节点的索引
+>             int rightMostIndex = 0; // 当前层最右节点的索引
+> 
+>             // 遍历当前层的节点
+>             for (int i = 0; i < levelSize; i++) {
+>                 TreeNode currentNode = nodeQueue.poll(); // 弹出队列头部的节点
+>                 int currentIndex = indexQueue.poll(); // 弹出队列头部的索引
+> 
+>                 // 如果有左子节点，将左子节点及其索引加入队列
+>                 if (currentNode.left != null) {
+>                     nodeQueue.offer(currentNode.left);
+>                     indexQueue.offer(currentIndex * 2);
+>                 }
+> 
+>                 // 如果有右子节点，将右子节点及其索引加入队列
+>                 if (currentNode.right != null) {
+>                     nodeQueue.offer(currentNode.right);
+>                     indexQueue.offer(currentIndex * 2 + 1);
+>                 }
+> 
+>                 rightMostIndex = currentIndex; // 更新最右节点的索引
+>             }
+> 
+>             // 更新最大宽度（当前层的最右节点索引 - 最左节点索引 + 1）
+>             maxWidth = Math.max(maxWidth, rightMostIndex - leftMostIndex + 1);
+>         }
+> 
+>         return maxWidth;
+>     }
+> }
+> ```
+>
+> 这个解决方案的核心是使用两个队列，一个用于存储节点，另一个用于存储节点对应的索引。在层序遍历的过程中，我们可以根据节点的索引计算每一层的宽度，从而找到树的最大宽度。
+
+GPT4选择用两个`queue`来分别记录每一层的每个节点，以及每个节点对应的`index`，由于每一层的父节点和其左右子节点之间的关系是`2 * i`和`2 * i + 1`的关系，所以在添加下一层的节点的时候，就可以根据父节点的`index`，从而求得其左右子节点的`index`
+
+**注意：**这里的`index`并不是每个节点在当前二叉树中的`index`，而是当前节点在完全二叉树中的对应的`index`
+
+这样做就无需考虑中间的空节点，因为我们考虑的`index`是在完全二叉树中的`index`，所以中间即使有空节点，那么空节点也会被计算在宽度之内
+
+当我们求每一层的宽度的时候，只需要`rightIndex - leftIndex + 1`就可以得到当前层的宽度
+
+然后单独定义一个`maxWeight`，每一层遍历完之后更新`maxWeight`，就可以在最后得到整个二叉树的最大宽度
+
+下面是我按照GPT4的思路自己写了一遍：
+
+```java
+	public int widthOfBinaryTree (TreeNode root) {
+        // write code here
+        if(root == null){
+            return 0;
+        }
+        Queue<TreeNode> nodeQueue = new LinkedList<>();
+        Queue<Integer> indexQueue = new LinkedList<>();
+        int maxWeight = 0;
+        nodeQueue.offer(root);
+        indexQueue.offer(0);
+        while(!nodeQueue.isEmpty()){
+            int levelSize = nodeQueue.size();
+            int leftIndex = indexQueue.peek();
+            int rightIndex = 0;
+            for(int i = 0;i < levelSize;i++){
+                TreeNode cur = nodeQueue.poll();
+                int curIndex = indexQueue.poll();
+                rightIndex = curIndex;
+                if(cur.left != null){
+                    nodeQueue.offer(cur.left);
+                    indexQueue.offer(curIndex * 2);
+                }
+                if(cur.right != null){
+                    nodeQueue.offer(cur.right);
+                    indexQueue.offer(curIndex * 2 + 1);
+                }
+            }
+            maxWeight = Math.max(maxWeight,rightIndex - leftIndex + 1);
+        }
+        return maxWeight;
+    }
+```
+
+这一题本想问问有没有其他方法，梯子g了，等梯子好了我再问问
+
+### NC234 二叉树的最小深度
+
+这题不难，但是有一个小坑，简单一说就行
+
+首先第一想法还是直接`return Math.max(run(root.left),run(root.right)) + 1`，然而，当遇到单分支的情况，这行代码会导致直接返回一个1，但是正确的答案应该是不为空的那一棵子树的最小深度
+
+所以如果当前节点的其中一棵子树为空，应该特殊处理这种情况，返回不为空的那一棵子树的最小深度+1
+
+下面是代码：
+
+```java
+	public int run (TreeNode root) {
+        // write code here
+        if(root == null){
+            return 0;
+        }
+        if(root.left == null){
+            return run(root.right) + 1;
+        }
+        if(root.right == null){
+            return run(root.left) + 1;
+        }
+        return Math.min(run(root.left),run(root.right)) + 1;
+    }
+```
+

@@ -33,6 +33,18 @@ leetcode链接：[257. 二叉树的所有路径 - 力扣（Leetcode）](https://
 
 leetcode链接：[404. 左叶子之和 - 力扣（Leetcode）](https://leetcode.cn/problems/sum-of-left-leaves/)
 
+判断是否是左节点的方法是用单独的一个`boolean`型变量
+
+对于当前节点：
+
+如果当前节点就是叶子节点，判断`isLeft`是`true`或`false`，如果是左叶子节点，那么把当前节点的`val`加到`sum`中，然后返回上一层递归
+
+​                                                                                                         如果不是，直接返回上一层递归
+
+如果当前节点有左子树，把`isLeft`置为`true`，然后递归左子树
+
+如果当前节点有右子树，把`isLeft`置为`false`，然后递归右子树
+
 ```java
 	public int sumOfLeftLeaves(TreeNode root) {
         boolean isLeft = false;
@@ -59,6 +71,16 @@ leetcode链接：[404. 左叶子之和 - 力扣（Leetcode）](https://leetcode.
             sumOfLeftLeavesChild(root.right,isLeft);
         }
     }
+```
+
+```java
+		//其中的一段代码可以简化为下面的
+		if(root.left == null && root.right == null){
+            if(isLeft){
+                sum += root.val;
+            }
+            return;
+        }
 ```
 
 注意，在`if(root.right != null)`中，不要忘了把`isLeft`再置为`false`，因为如果上面走了`if(root.left != null)`分支的话，会把`isLeft`置为`true`，而此时在`if(root.right != null)`中，`isLeft`应该是`false`
