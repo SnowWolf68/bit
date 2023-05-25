@@ -1427,3 +1427,152 @@ GPT4选择用两个`queue`来分别记录每一层的每个节点，以及每个
     }
 ```
 
+### NC279 二叉树的下一个结点
+
+这题刚开始看感觉很蒙
+
+首先分析一下这题二叉树的结构：在基本二叉树的基础上，每个节点都多了一个指向它父节点的指针`next`
+
+再分析形参：这题的形参很巧妙，由于这棵二叉树的每一个节点都有一个指向其父节点的指针`next`，所以对于每一个节点，都可以根据左右节点指针以及父节点指针，找到一整棵树，所以这也是为什么这题的传参只有一个节点，也就是当前节点
+
+题目的要求就是找到在中序遍历中当前节点的下一个节点
+
+暴力的方法就是中序遍历，然后找到当前节点的位置，然后再找到当前节点的下一个节点，但是这样做就没意思了
+
+正确的做法是判断当前节点在整个二叉树当中的位置
+
+由于中序遍历的顺序是：左，中，右
+
+所以对于当前节点，无需考虑其左子节点的情况
+
+1、如果当前节点存在右子节点，那么中序遍历的下一个节点直接就是当前节点的右子节点
+
+2、如果当前节点不存在右子节点：
+
+​			 如果当前节点是父节点的左子节点，那么中序遍历的下一个节点就是当前节点的父节点
+
+​             如果当前节点是父节点的右子节点，那么需要一直向上寻找，直到找到一个节点，使得这个节点是其父节点的左子节点，如果找到根节点也没有找到这样的一个节点，说明整棵树的中序遍历已经完成了，直接返回`null`即可
+
+但是这样写还不够，有几个地方会出现空指针异常，这几个地方我会在代码中标出来
+
+下面是代码：
+
+```java
+	public TreeLinkNode GetNext(TreeLinkNode pNode) {
+        if(pNode == null){//根节点这里其实不判断也可以，因为题目要求二叉树的节点个数至少为1个
+            return null;
+        }
+        if(pNode.right != null){
+            TreeLinkNode cur = pNode.right;
+            while(cur.left != null){
+                cur = cur.left;
+            }
+            return cur;
+        }else if(pNode.right == null){
+            if(pNode.next == null){
+                return null;
+            }
+            //关键的是这里
+            //因为下面会找pNode.next，而如果这里的pNode为null，就会出现空指针异常
+            //所以这里要加一个判断，如果当前节点没有父节点 -- 也就是说如果当前节点就是根节点
+            //并且由上面的判断条件可知，当前节点没有右子节点
+            //此时整棵二叉树已经全部遍历完了，直接返回null就可以
+            if(pNode.next.left == pNode){
+                return pNode.next;
+            }else{
+                TreeLinkNode cur = pNode.next;
+                while(cur.next != null && cur.next.left != cur){
+                    cur = cur.next;
+                }
+                if(cur.next == null){
+                    return null;
+                }else{
+                    return cur.next;
+                }
+            }
+        }
+        return null;
+    }
+```
+
+### NC54 三数之和
+
+#### 1、非哈希表
+
+看了一下题解，自己写的时候有很多想法，但是写出来的代码有很多bug，改来改去最后还是改成了题解的模样（哭
+
+大概方法就是先确定一个（用一次遍历）
+
+在这个确定的元素后面的区间中，用双指针来找符合条件的另外两个元素
+
+但是在去重以及双指针的更新中，还是存在很多的坑
+
+中间遇到的坑太多了，就不细说了，直接放AC代码吧：
+
+```java
+	public ArrayList<ArrayList<Integer>> threeSum(int[] num) {
+        ArrayList<ArrayList<Integer>> ret = new ArrayList<>();
+        if (num.length < 3) {
+            return ret;
+        }
+        Arrays.sort(num);
+        for (int i = 0; i < num.length; i++) {//这里题解用的是i < num.length - 2，题解更严谨，虽然我这样写也可以过
+            if (i > 0 && num[i] == num[i - 1]) {//去重
+                continue;
+            }
+            int left = i + 1;//双指针
+            int right = num.length - 1;
+            int target = -num[i];
+            while (left < right) {
+                if (num[left] + num[right] == target) {
+                    //这里也是要注意的地方
+                    //一开始我想用Arrays.asList()，然后在前面用(ArrayList<Integer>)强转为ArrayList
+                    //但是这样的强转会抛异常
+                    //这里有一个坑，之前我也没有注意到，问了GPT又看了源码才发现，我在下面会详细说
+                    ArrayList<Integer> list = new ArrayList<>(Arrays.asList(num[i], num[left],
+                            num[right]));
+                    ret.add(list);
+                    while (left + 1 < right && num[left] == num[left + 1]) {
+                        left++;
+                    }
+                    while (left < right - 1 && num[right] == num[right - 1]) {
+                        right--;
+                    }
+                    left++;
+                    right--;
+                }else if (num[left] + num[right] > target) {
+                    right--;
+                } else {
+                    left++;
+                }
+            }
+        }
+        return ret;
+    }
+```
+
+**注意：**`Arrays.asList()`的返回值不是`java.util.List`，而是`Arrays.ArrayList`，即`Arrays`中的一个内部类，具体如图：
+
+![image-20230525233639457](E:\bit\notes\img\image-20230525233639457.png)
+
+注意这里虽然函数原型上返回的是`List`，然而在函数体里面返回的是一`ArrayList`
+
+然而这个`ArrayList`就是我们常用的那个`ArrayList`吗，继续跟进
+
+<img src="E:\bit\notes\img\image-20230525233800302.png" alt="image-20230525233800302" style="zoom:80%;" />
+
+跟进之后发现到了这里，这张图看的不是很清楚
+
+再看一张：
+
+![image-20230525233918657](E:\bit\notes\img\image-20230525233918657.png)
+
+![image-20230525233958473](E:\bit\notes\img\image-20230525233958473.png)
+
+这张图就很清楚了，我们可以发现这里返回的`ArrayList`其实是`Arrays`的内部类，不是我们常用的`java.util.ArrayList`
+
+这两者之间没有继承关系，所以进行强转自然会
+
+
+
+#### 2、哈希表
