@@ -800,9 +800,9 @@ emmm上面我的解释有点问题，我又不明白了，于是又去找了GPT4
             return;
         }
         Stack<TreeNode> stack = new Stack<>();
-        stack.push(root);
         TreeNode pre = null;
-        while(!stack.empty()){
+        stack.push(root);
+        while(!stack.isEmpty()){
             TreeNode top = stack.pop();
             if(top.right != null){
                 stack.push(top.right);
@@ -813,13 +813,14 @@ emmm上面我的解释有点问题，我又不明白了，于是又去找了GPT4
             if(pre != null){
                 pre.right = top;
             }
-            pre = top;
             top.left = null;
+            pre = top;
         }
+        pre.right = null;//虽然经过测试，这句话加不加都可以AC，但是感觉为了更严谨，还是加上吧
     }
 ```
 
-
+除此之外，由于这题需要建立一个单链表，建立单链表需要把上一个节点的右指针指向下一个节点，所以在遍历的时候需要记录下上一个节点，所以需要定义一个`pre`引用，指向上一个节点，这一点别忘了
 
 
 

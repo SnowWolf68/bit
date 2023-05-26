@@ -1284,6 +1284,29 @@ public class Solution {
 
 实在是看不懂ing
 
+1. `prefixSumCount.put(0, 1);`这行代码的目的是正确处理从根节点开始的路径
+
+   考虑从根节点开始的路径，该路径和等于`sum`，对于这种情况，`current - target == 0`如果没有这行代码，`map`中就很可能没有和为`0`的路径，那么这时候就会返回错误的答案
+
+2. 有关下面两行代码的顺序问题：
+
+   ```java
+   		// 检查 currentSum - target 是否在哈希表中，如果在，将对应的值赋给 count，否则赋值为 0
+           int count = prefixSumCount.getOrDefault(currentSum - target, 0);
+           // 更新哈希表，将当前累加和的路径数量加 1
+           prefixSumCount.put(currentSum, prefixSumCount.getOrDefault(currentSum, 0) + 1);
+   ```
+
+   这两行代码乍一看没有顺序问题，先执行那一个都可以
+
+   然而，在根节点为`0`的时候，交换过来就会出现问题：
+
+   如果根节点为0，当前的`currentSum == 0`，如果先更新哈希表，那么此时会把哈希表中累加和为`0`的路径的数量再`+ 1`，由于初始化就让累加和为`0`的节点的数量为`1`，所以这时累加和为`0`的路径数量就变成了`2`
+
+   如果此时`sum`也等于`0`，那么这时候统计出来的数量就是错误的了
+
+   而如果按照先判断是否存在，再更新哈希表的顺序，就可以解决这种问题，因为如果根节点为`0`，此时由于初始化就让累加和为`0`的路径数为`1`，在这种情况下也正好符合要求，因此也就不会出现上面的那种错误情况
+
 ### NC204 二叉树的最大宽度
 
 读完题目首先想到的就是用层序遍历，但是中间会有空的节点，如果把空的节点也添加到层序遍历的`queue`中的话，比较难搞，于是问了一下GPT4：
@@ -1532,15 +1555,22 @@ GPT4选择用两个`queue`来分别记录每一层的每个节点，以及每个
                     ArrayList<Integer> list = new ArrayList<>(Arrays.asList(num[i], num[left],
                             num[right]));
                     ret.add(list);
+                    //下面这两段也都是去重操作
+                    //即如果遇到相同的元素，因为之前已经判断过了，所以可以直接跳过
                     while (left + 1 < right && num[left] == num[left + 1]) {
                         left++;
                     }
                     while (left < right - 1 && num[right] == num[right - 1]) {
                         right--;
                     }
+                    //当前满足要求的这一组处理完了，再让两个指针同时向中间走，继续寻找
                     left++;
                     right--;
                 }else if (num[left] + num[right] > target) {
+                    //但是如果当前的一组元素不满足要求
+                    //此时就不能同时更新两个指针，而是判断当前的和与目标的大小关系
+                    //然后再移动相应的指针
+                    //移动一个指针就可以，此时如果移动两个指针，可能会遗漏一些答案
                     right--;
                 } else {
                     left++;
@@ -1571,8 +1601,97 @@ GPT4选择用两个`queue`来分别记录每一层的每个节点，以及每个
 
 这张图就很清楚了，我们可以发现这里返回的`ArrayList`其实是`Arrays`的内部类，不是我们常用的`java.util.ArrayList`
 
-这两者之间没有继承关系，所以进行强转自然会
+这两者之间没有继承关系，所以进行强转自然会抛出类型转换异常
 
+解决方法就是利用`ArrayList`的重载的构造函数：
 
+![image-20230526103746007](C:\Users\zhang\AppData\Roaming\Typora\typora-user-images\image-20230526103746007.png)
+
+这个构造函数接收一个`Collection`对象，所以可以把`asList`的返回值传过来，这样就可以创建一个`ArrayList`类的对象了
 
 #### 2、哈希表
+
+**关键的一点：**
+
+**通过外层的`i`的这个循环，把原来的三数之和问题转化为内层循环中的两数之和的问题**
+
+```java
+	public ArrayList<ArrayList<Integer>> threeSum(int[] num) {
+        ArrayList<ArrayList<Integer>> ret = new ArrayList<>();
+        if(num.length < 3){
+            return ret;
+        }
+        Arrays.sort(num);
+        Map<Integer,Integer> map = new HashMap<>();
+        for(int i = 0;i < num.length;i++){
+            map.put(num[i],i);
+        }
+        for(int i = 0;i < num.length;i++){//一会再判断这里要不要- 2
+            if(i > 0 && num[i] == num[i - 1]){
+                continue;
+            }
+            int target = -num[i];
+            for(int j = i + 1;j < num.length;j++){
+                if(j > i + 1 && num[j] == num[j - 1]){
+                    continue;
+                }
+                if(map.containsKey(target - num[j]) && map.get(target - num[j]) > j){
+                    ArrayList<Integer> list = new ArrayList<>
+                            (Arrays.asList(num[i],num[j],target - num[j]));
+
+
+                    ret.add(list);
+
+                }
+            }
+        }
+        return ret;
+    }
+```
+
+或者也可以利用`HashSet`来进行最后结果的去重
+
+但是要注意，如果直接用`HashSet`并不能保证取出和放入的顺序相同，所以需要用`LinkedHashSet`来保证取出的顺序
+
+下面是用这种方法进行结果去重的代码：
+
+```java
+	public ArrayList<ArrayList<Integer>> threeSum(int[] num) {
+        HashSet<ArrayList<Integer>> resultSet = new LinkedHashSet<>();
+        //这里用LinkedHashSet来保证取出的顺序和放入时的顺序相同
+        if(num.length < 3){
+            return new ArrayList<ArrayList<Integer>>();
+        }
+        Arrays.sort(num);
+        Map<Integer,Integer> map = new HashMap<>();
+        for(int i = 0;i < num.length;i++){
+            map.put(num[i],i);
+        }
+        for(int i = 0;i < num.length;i++){//一会再判断这里要不要- 2
+            // if(i > 0 && num[i] == num[i - 1]){
+            //     continue;
+            // }
+            int target = -num[i];
+            for(int j = i + 1;j < num.length;j++){
+                // if(j > i + 1 && num[j] == num[j - 1]){
+                //     continue;
+                // }
+                if(map.containsKey(target - num[j]) && map.get(target - num[j]) > j){
+                    ArrayList<Integer> list = new ArrayList<>
+                            (Arrays.asList(num[i],num[j],target - num[j]));
+
+
+                    resultSet.add(list);
+
+                }
+            }
+        }
+        ArrayList<ArrayList<Integer>> ret = new ArrayList<>(resultSet);
+        return ret;
+    }
+```
+
+还有就是`i`这层循环中，要不要到`num.length - 2`就停止的问题
+
+当然这样写更好，但是如果不这样写，也不会有问题，因为如果最后剩余的元素不足，下面的`for(int j = i + 1;j < num.length;j++)`和`if(map.containsKey(target - num[j]) && map.get(target - num[j]) > j)`都不会进去，所以也无所谓
+
