@@ -1605,7 +1605,7 @@ GPT4选择用两个`queue`来分别记录每一层的每个节点，以及每个
 
 解决方法就是利用`ArrayList`的重载的构造函数：
 
-![image-20230526103746007](C:\Users\zhang\AppData\Roaming\Typora\typora-user-images\image-20230526103746007.png)
+![image-20230526103746007](E:\bit\notes\img\image-20230526103746007.png)
 
 这个构造函数接收一个`Collection`对象，所以可以把`asList`的返回值传过来，这样就可以创建一个`ArrayList`类的对象了
 

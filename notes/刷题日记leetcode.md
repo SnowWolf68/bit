@@ -822,5 +822,766 @@ emmm上面我的解释有点问题，我又不明白了，于是又去找了GPT4
 
 除此之外，由于这题需要建立一个单链表，建立单链表需要把上一个节点的右指针指向下一个节点，所以在遍历的时候需要记录下上一个节点，所以需要定义一个`pre`引用，指向上一个节点，这一点别忘了
 
+### 863.二叉树中所有距离为 K 的结点
 
+这题的方法是从目标节点开始，分别向父节点，左子节点，右子节点三个方向进行寻找
+
+为了记录下每个节点的父节点，可以使用`HashMap`，键为当前节点，值为键的父节点
+
+所以首先需要遍历一遍二叉树，找到每个节点的父节点并添加到`parentMap`中
+
+第二步就是从`target`节点开始，分别向三个方向进行搜索
+
+但是要注意，如果直接进行递归搜索的话，有可能会出现走回去又走回来的情况，比如：
+
+在三个搜索的方向中走到了左子节点，而在左子节点中进行搜索的时候，还要向父节点进行搜索，于是又走回了原来的节点
+
+然而在左子节点中，还不能只向左子节点走，而是除了向父节点方向，其余两个方向（左子节点和右子节点）都要进行搜索
+
+为了解决这个问题，可以再定义一个引用`from`，作为递归函数的形参，每次都要传进来
+
+这个引用用来记录上一个走到的节点
+
+初始值为`null`，每一次走到下一个节点时，都把这个引用指向当前节点
+
+当向下一个节点走的时候，首先判断`from`这个引用是不是本来就指向下一个要走的节点，如果指向下一个要走的节点，说明本来就是从这个节点走过来的，那么肯定不能再走回去了
+
+所以当下一个要走的节点不是`from`引用指向的节点时，就继续递归到下一个节点，同时更新`from`引用的指向，指向当前节点，意味着下一个节点时从当前节点走过来的
+
+注意这点之后代码就比较好写了，下面是AC代码：
+
+```java
+	HashMap<TreeNode,TreeNode> parentMap = new HashMap<>();
+    List<Integer> ret = new ArrayList<>();
+    public List<Integer> distanceK(TreeNode root, TreeNode target, int k) {
+        if(root == null){
+            return new ArrayList<Integer>();
+        }
+        parentMap.put(root,null);
+        getMap(root);
+        findNode(target,k,null);
+        return ret;
+    }
+    private void getMap(TreeNode root){
+        if(root == null){
+            return;
+        }
+        if(root.left != null){
+            parentMap.put(root.left,root);
+            getMap(root.left);
+        }
+        if(root.right != null){
+            parentMap.put(root.right,root);
+            getMap(root.right);
+        }
+    }
+    private void findNode(TreeNode cur,int k,TreeNode from){
+        if(cur == null){
+            return;
+        }
+        if(k == 0){
+            ret.add(cur.val);
+            return;
+        }
+        if(cur.left != null && cur.left != from){
+            findNode(cur.left,k - 1,cur);
+        }
+        if(cur.right != null && cur.right != from){
+            findNode(cur.right,k - 1,cur);
+        }
+        if(parentMap.get(cur) != null && parentMap.get(cur) != from){
+            findNode(parentMap.get(cur),k - 1,cur);
+        }
+    }
+```
+
+### 508.出现次数最多的子树元素和
+
+这题的方法也是用子树的思想，对于其中的某一个节点，求这个节点的子树元素和，可以转化为左右子树的元素和 + 当前节点的`val`
+
+而要求出现次数最多的元素和，就可以先求出所有的元素和，利用`<元素和，出现次数>`的形式存在`HashMap`中，最后再遍历一次`HashMap`，就可以得到出现次数最多的元素和
+
+在递归求子树的元素和的函数中，首先判断当前`root`是否为空，如果为空，直接返回一个0，如果不为空，递归左右子树
+
+由于当前节点的递归结果和左右子节点的递归结果有关，所以这个递归函数是需要有返回值的
+
+记录下左树的递归结果和右树的递归结果，然后加上当前节点的`val`，就是当前节点的子树元素和
+
+然后更新`HashMap`，最后把这个`sum`返回就OK了
+
+下面是AC代码（就改了一次返回值数组的问题，然后一次AC我也是没想到的）：
+
+```java
+	public HashMap<Integer,Integer> hashMap = new HashMap<>();
+    public int[] findFrequentTreeSum(TreeNode root) {
+        if(root == null){
+            return new int[0];
+        }
+        findFrequentTreeSumChild(root);
+        Set<Map.Entry<Integer,Integer>> entries = hashMap.entrySet();
+        int maxCount = 0;
+        for(Map.Entry<Integer,Integer> entry : entries){
+            if(entry.getValue() > maxCount){
+                maxCount = entry.getValue();
+            }
+        }
+        List<Integer> retList = new ArrayList<>();
+        for(Map.Entry<Integer,Integer> entry : entries){
+            if(entry.getValue() == maxCount){
+                retList.add(entry.getKey());
+            }
+        }
+        Integer[] retInteger = retList.stream().toArray(new IntFunction<Integer[]>() {
+            @Override
+            public Integer[] apply(int value) {
+                return new Integer[value];
+            }
+        });
+        int[] ret = new int[retInteger.length];
+        for(int i = 0;i < retInteger.length;i++){
+            ret[i] = retInteger[i];
+        }
+        return ret;
+    }
+    private int findFrequentTreeSumChild(TreeNode root){
+        if(root == null){
+            return 0;
+        }
+        int left = findFrequentTreeSumChild(root.left);
+        int right = findFrequentTreeSumChild(root.right);
+        int sum = left + right + root.val;
+        hashMap.put(sum,hashMap.getOrDefault(sum,0) + 1);
+        return sum;
+    }
+```
+
+### 538.把二叉搜索树转换为累加树
+
+这题答案很简单，但是思路不那么好想
+
+看到题根本没有思路，去看题解
+
+累加树就是树中的每个节点都是所有大于这个节点值的节点值的和
+
+所以可以通过反向的中序遍历，遍历的同时用`sum`记录节点值的和，遍历的同时更新`sum`，也更新当前节点的`val`值
+
+倒序中序遍历完之后，二叉搜索树就已经转变成一棵累加树了
+
+下面是代码：
+
+```java
+	public int sum;
+    public TreeNode convertBST(TreeNode root) {
+        if(root == null){
+            return null;
+        }
+        convertBST(root.right);
+        sum += root.val;
+        root.val = sum;
+        convertBST(root.left);
+        return root;
+    }
+```
+
+### 563.二叉树的坡度
+
+这题基本上没怎么看题解，但是在改了两处小错误之后，一次AC，开心！
+
+坡度和子树节点值的和有关，所以需要先求子树的节点值的和，这个可以用递归求
+
+首先如果当前节点不为空，就递归去找左右子节点，直到为空，然后在回溯的过程中计算当前节点为根节点的子树的节点值的和
+
+与此同时，我们还可以同时算出当前子树的坡度
+
+因为二叉树的坡度等于所有子树（节点）的坡度和，所以还需要计算出所有节点的坡度，最后再求和
+
+当前子树的坡度就可以用之前递归求出来的左右子树的节点值的和，再求差的绝对值，就得到了当前节点为根节点的子树的坡度
+
+这些坡度可以用`HashMap<TreeNode,Integer>`来进行存储
+
+所有的都求完之后，再遍历一次哈希表，就可以得到整棵树的坡度
+
+下面是AC代码：
+
+```java
+	public Map<TreeNode,Integer> hashMap = new HashMap<>();
+    public int findTilt(TreeNode root) {
+        getSum(root);
+        Set<Map.Entry<TreeNode,Integer>> entries = hashMap.entrySet();
+        int sumTilt = 0;
+        for(Map.Entry<TreeNode,Integer> entry : entries){
+            sumTilt += entry.getValue();
+        }
+        return sumTilt;
+    }
+    private int getSum(TreeNode root){
+        if(root == null){
+            return 0;
+        }
+        int leftRet = getSum(root.left);
+        int rightRet = getSum(root.right);
+        hashMap.put(root,Math.abs(leftRet - rightRet));
+        return leftRet + rightRet + root.val;
+    }
+```
+
+### 606.根据二叉树创建字符串
+
+之前博哥讲过，但是现在做还是有点手生，再记一下
+
+就是硬判断
+
+但是要注意，如果当前节点既没有左子节点也没有右子节点，那么左右子树的括号都可以省掉
+
+如果当前节点有左子节点，没有右子节点，右子节点的括号也可以省掉
+
+但是如果当前节点没有左子节点，有右子节点，那么左子节点的括号不能省掉
+
+所以就需要根据当前节点的左右子树的情况进行判断，详细的我就不说了，直接放代码吧，分析完发现这题其实并不难：
+
+```java
+	public String tree2str(TreeNode root) {
+        StringBuilder sb = new StringBuilder();
+        subTree(root,sb);
+        return sb.toString();
+    }
+    private void subTree(TreeNode root,StringBuilder sb){
+        if(root == null){
+            return;
+        }
+        sb.append(root.val);
+        if(root.left != null){
+            sb.append("(");
+            subTree(root.left,sb);
+            sb.append(")");
+            if(root.right != null){
+                sb.append("(");
+                subTree(root.right,sb);
+                sb.append(")");
+            }
+        }else{
+            if(root.right != null){
+                sb.append("()");
+                sb.append("(");
+                subTree(root.right,sb);
+                sb.append(")");
+            }
+        }
+    }
+```
+
+下面再放一下博哥当时讲的代码，想看的话可以看一看：
+
+```java
+	public String tree2str(TreeNode root) {
+        if(root == null){
+            return null;
+        }
+        StringBuilder stringBuilder = new StringBuilder();
+        tree2strChild(root,stringBuilder);
+        return stringBuilder.toString();
+    }
+    private void tree2strChild(TreeNode t,StringBuilder stringBuilder){
+        if(t == null){
+            return;
+        }
+        stringBuilder.append(t.val);
+        if(t.left != null){
+            stringBuilder.append("(");
+            tree2strChild(t.left,stringBuilder);
+            stringBuilder.append(")");
+        }else{
+            if(t.right == null){
+                return;
+            }else{
+                stringBuilder.append("()");
+            }
+        }
+        
+        if(t.right != null){
+            stringBuilder.append("(");
+            tree2strChild(t.right,stringBuilder);
+            stringBuilder.append(")");
+        }else{
+            return;
+        }
+    }
+```
+
+感觉博哥这样写比我那样写思路要更清晰一点
+
+### 617.合并二叉树
+
+这题在牛客做过，这里就单纯记一下这次写的代码吧：
+
+```java
+	public TreeNode mergeTrees(TreeNode root1, TreeNode root2) {
+        if(root1 == null && root2 == null){
+            return null;
+        }
+        if(root1 != null && root2 == null){
+            return root1;
+        }
+        if(root1 == null && root2 != null){
+            return root2;
+        }
+        root1.val += root2.val;
+        root1.left = mergeTrees(root1.left,root2.left);
+        root1.right = mergeTrees(root1.right,root2.right);
+        return root1;
+    }
+```
+
+### 623.在二叉树中增加一行
+
+这题一开始想用层序遍历非递归，当走到`depth - 1`层时进行处理，但是发现这样不大好做，于是看了一下题解：
+
+还是用子树的思想，如果当前没有走到`depth`的上一层，就递归处理左右子树
+
+如果当前节点是`depth`的上一层，那就改变当前节点的左右指针的指向
+
+注意题目中给的二叉树中提供了一种另外的构造方法，可以在不用额外变量记录当前节点左右指针的指向的同时在当前节点的下面添加节点
+
+```java
+/**
+ * Definition for a binary tree node.
+ * public class TreeNode {
+ *     int val;
+ *     TreeNode left;
+ *     TreeNode right;
+ *     TreeNode() {}
+ *     TreeNode(int val) { this.val = val; }
+ *     //注意下面的这个构造
+ *     TreeNode(int val, TreeNode left, TreeNode right) {
+ *         this.val = val;
+ *         this.left = left;
+ *         this.right = right;
+ *     }
+ * }
+ */
+```
+
+如果当前`depth == 1`，特殊处理
+
+下面是AC代码：
+
+```java
+	public TreeNode addOneRow(TreeNode root, int val, int depth) {
+        if(root == null){
+            return null;
+        }
+        if(depth == 1){
+            return new TreeNode(val,root,null);
+        }
+        if(depth == 2){
+            root.left = new TreeNode(val,root.left,null);
+            root.right = new TreeNode(val,null,root.right);
+            return root;//这个地方不return也不会有问题，那样的话就会一直遍历完整棵树，所以最好还是return一下
+        }
+        addOneRow(root.left,val,depth - 1);
+        addOneRow(root.right,val,depth - 1);
+        return root;
+    }
+```
+
+我又想了一下，因为有那个重载的构造方法的存在，所以如果用层序遍历非递归好像也不是很难做
+
+下面是用层序遍历非递归的写法：
+
+```java
+	public TreeNode addOneRow(TreeNode root, int val, int depth) {
+        if(depth == 1){//特殊情况
+            return new TreeNode(val,root,null);
+        }
+        if(root == null){
+            return null;
+        }
+        Queue<TreeNode> queue = new LinkedList<>();
+        queue.offer(root);
+        while(!queue.isEmpty()){
+            int size = queue.size();
+            if(depth == 2){//当走到depth的上一层时，开始修改
+                while(!queue.isEmpty()){//此时queue中记录的就是当前层的所有节点
+                    TreeNode cur = queue.poll();
+                    cur.left = new TreeNode(val,cur.left,null);
+                    cur.right = new TreeNode(val,null,cur.right);
+                }
+                return root;
+            }else{//如果没有走到depth的上一层，就继续正常的层序遍历非递归
+                while(size != 0){
+                    size--;//一开始我把这句话忘了，就会出现空指针异常，因为会一直poll，queue空了以后poll出来的就是null
+                    	   //再进行cur.left就会出现空指针异常
+                    TreeNode cur = queue.poll();
+                    if(cur.left != null){
+                        queue.offer(cur.left);
+                    }
+                    if(cur.right != null){
+                        queue.offer(cur.right);
+                    }
+                }
+            }
+            depth--;
+        }
+        return root;
+    }
+```
+
+### 剑指 Offer 37. 序列化二叉树
+
+这题在牛客上做过，但是当时用的是前序序列和中序序列进行的序列化，这次我想用层序遍历做一下
+
+序列化就是正常的层序遍历，只不过这次当遍历到当前节点的时候不是把当前节点添加到列表中，而是把当前节点的值拼接到`StringBuilder`中
+
+还有和正常层序遍历不一样的一点是，序列化出来的字符串应该是要包括`null`节点的，这样才能保证树的结构不发生变化，所以在层序遍历的过程中，即使遇到了`null`节点，也需要加到`StringBuilder`当中
+
+但是要注意，如果仅仅按上面那样写的话，最后会多出来一层`null`，这是因为遍历到原来二叉树的最后一层时，由于遇到了`null`节点也要正常添加，所以会导致最后一层的下一层也会被遍历到
+
+解决办法就是首先求一下二叉树的最大深度，然后用`depth`变量记录一下当前是到了哪一层，如果到了最后一层，那么就不再往`queue`中添加节点
+
+难点是反序列化
+
+反序列化我也不会写，去问了一下chatGPT：
+
+>您的序列化函数看起来是正确的，使用层序遍历将二叉树转化为字符串形式。现在让我们来讨论如何实现反序列化函数。
+>
+>反序列化函数的思路是根据序列化的字符串重建二叉树。我们可以按照以下步骤来实现反序列化函数：
+>
+>1. 首先，将序列化的字符串拆分为节点值的数组，使用逗号作为分隔符。例如，将字符串"1,2,3,null,null,4,5"拆分为["1", "2", "3", "null", "null", "4", "5"]。
+>
+>2. 创建一个队列，用于按顺序存储每个节点的引用。
+>
+>3. 根据数组中的第一个值创建根节点，并将其入队。
+>
+>4. 使用一个循环，直到队列为空。在每次迭代中，从队列中取出一个节点作为当前节点。
+>
+>5. 从数组中取下一个值作为当前节点的左子节点的值。如果该值为"null"，则左子节点为空；否则，创建一个新节点并将其作为当前节点的左子节点，并将新节点入队。
+>
+>6. 从数组中取下一个值作为当前节点的右子节点的值。如果该值为"null"，则右子节点为空；否则，创建一个新节点并将其作为当前节点的右子节点，并将新节点入队。
+>
+>7. 重复步骤4-6，直到遍历完数组中的所有值或队列为空。
+>
+>8. 返回根节点，即重建后的二叉树。
+>
+>下面是相应的代码实现：
+>
+>```java
+>// Decodes your encoded data to tree.
+>public TreeNode deserialize(String data) {
+>    if (data.isEmpty()) {
+>        return null;
+>    }
+>
+>    // 拆分序列化的字符串为节点值数组
+>    String[] values = data.split(",");
+>
+>    Queue<TreeNode> queue = new LinkedList<>();
+>    TreeNode root = new TreeNode(Integer.parseInt(values[0]));
+>    queue.offer(root);
+>    int index = 1; // 用于遍历节点值数组的索引
+>
+>    while (!queue.isEmpty()) {
+>        TreeNode current = queue.poll();
+>
+>        // 处理左子节点
+>        if (!values[index].equals("null")) {
+>            TreeNode left = new TreeNode(Integer.parseInt(values[index]));
+>            current.left = left;
+>            queue.offer(left);
+>        }
+>        index++;
+>
+>        // 处理右子节点
+>        if (!values[index].equals("null")) {
+>            TreeNode right = new TreeNode(Integer.parseInt(values[index]));
+>            current.right = right;
+>            queue.offer(right);
+>        }
+>        index++;
+>    }
+>
+>    return root;
+>}
+>```
+>
+>这样，您现在有了一个完整的二叉树序列化和反序列化的实现。请注意，上述代码是基于假设输入的序列化字符串是有效的，并且没有重复的节点值。如果您需要处理无效输入或重复值的情况，可能需要进行额外的检查和处理。
+
+也就是说，层序遍历的反序列化过程也和层序遍历类似
+
+先从字符串数组中拿一个字符串（此时就是根节点），转换成相应的节点（如果取出来的是`null`，就说明根节点就是空节点，直接`return null`就行了），然后把这个节点放进队列`queue`中
+
+如果队列不为空，并且字符串数组还没有遍历完：
+
+每次从队列中取出一个节点，此时字符串数组的下面两个字符串就分别是当前节点的左右子节点转换成的字符串，把这两个字符串转换成对应的节点，放进队列`queue`中（如果是空节点就不要放了，因为空节点本身就为空了，更不可能有左右子节点，所以就不需要放在队列中继续建立它的左右子节点了）
+
+这样队列中每次存的还是当前层的所有节点（不为空的），每次出队，并且建好左右子节点，让左右子节点入队，这样当前层都出队之后，队列中就存好了下一层的所有非空节点
+
+以此类推，当队列为空或字符串数组遍历完之后，这棵二叉树就还原好了
+
+下面是AC代码：
+
+```java
+	// Encodes a tree to a single string.
+    public String serialize(TreeNode root) {
+        if(root == null){
+            return "null";
+        }
+        int maxDepth = maxDepth(root);
+        Queue<TreeNode> queue = new LinkedList<>();
+        queue.offer(root);
+        StringBuilder stringBuilder = new StringBuilder();
+        int depth = 1;
+        while(!queue.isEmpty()){
+            int size = queue.size();
+            while(size != 0){
+                size--;
+                TreeNode cur = queue.poll();
+                if(cur == null){
+                    stringBuilder.append(",null");
+                    continue;
+                }
+                if(stringBuilder.length() == 0){
+                    stringBuilder.append(cur.val);
+                }else{
+                    stringBuilder.append("," + cur.val);
+                }
+                if(depth != maxDepth){
+                    queue.offer(cur.left);
+                    queue.offer(cur.right);
+                }
+
+            }
+            depth++;
+        }
+        return stringBuilder.toString();
+    }
+
+    private int maxDepth(TreeNode root){
+        if(root == null){
+            return 0;
+        }
+        return Math.max(maxDepth((root.left)),maxDepth((root.right))) + 1;
+    }
+
+    public TreeNode deserialize(String data) {
+        if(data.length() == 0){
+            return null;
+        }
+        String[] node = data.split(",");
+        Queue<TreeNode> queue = new LinkedList<>();
+        int index = 0;
+        TreeNode root = null;
+        if(node[index].equals("null")){
+            return null;
+        }else{
+            root = new TreeNode(Integer.parseInt(node[index++]));
+        }
+        queue.offer(root);
+        while(!queue.isEmpty() && index < node.length){
+            TreeNode cur = queue.poll();
+            if(node[index].equals("null")){
+                cur.left = null;
+                index++;
+            }else{
+                cur.left = new TreeNode(Integer.parseInt(node[index++]));
+                queue.offer(cur.left);
+            }
+            if(node[index].equals("null")){
+                cur.right = null;
+                index++;
+            }else{
+                cur.right = new TreeNode(Integer.parseInt(node[index++]));
+                queue.offer(cur.right);
+            }
+        }
+        return root;
+    }
+```
+
+### 652.寻找重复的子树
+
+这题能过，太不容易了
+
+判断子树相同，也就相当于判断子树的序列化后的字符串相同
+
+所以可以把每一棵子树的序列化后的字符串和其对应的出现次数放进哈希表中
+
+最后遍历哈希表，只要出现次数超过1的，都是重复的子树
+
+注意：这里要求返回的是重复子树的根节点，而我们哈希表中存的是重复子树的序列化值，所以可以再通过反序列化，把序列化的字符串转化成一棵新的子树，然后把这棵子树的根节点添加到`ret`集合中，最后返回这个`ret`集合，就可以了
+
+下面是AC代码：
+
+```java
+	public HashMap<String,Integer> hashMap1 = new HashMap<>();
+    public List<TreeNode> findDuplicateSubtrees(TreeNode root) {
+        if(root == null){
+            return new ArrayList<TreeNode>();
+        }
+        getHashMap(root);
+        Set<Map.Entry<String,Integer>> entries = hashMap1.entrySet();
+        List<TreeNode> ret = new ArrayList<>();
+        for(Map.Entry<String,Integer> entry : entries){
+            if(entry.getValue() > 1){
+                ret.add(deserialize(entry.getKey()));
+            }
+        }
+        return ret;
+    }
+    private void getHashMap(TreeNode root){
+        if(root == null){
+            return;
+        }
+        String serialize = Serialize(root);
+        hashMap1.put(serialize,hashMap1.getOrDefault(serialize,0) + 1);
+        if(root.left != null){
+            getHashMap(root.left);
+        }
+        if(root.right != null){
+            getHashMap(root.right);
+        }
+    }
+    public String Serialize(TreeNode root){
+        if(root == null){
+            return "null";
+        }
+        StringBuilder stringBuilder = new StringBuilder();
+        int maxDepth = maxDepth(root);
+        int depth = 1;
+        Queue<TreeNode> queue = new LinkedList<>();
+        queue.offer(root);
+        while(!queue.isEmpty()){
+            int size = queue.size();
+            while(size != 0){
+                size--;
+                TreeNode cur = queue.poll();
+                if(cur == null){
+                    stringBuilder.append(",null");
+                    continue;
+                }
+                if(stringBuilder.length() == 0){
+                    stringBuilder.append(cur.val);
+                }else{
+                    stringBuilder.append("," + cur.val);
+                }
+                if(depth != maxDepth){
+                    queue.offer(cur.left);
+                    queue.offer(cur.right);
+                }
+            }
+            depth++;
+        }
+        return stringBuilder.toString();
+    }
+    private int maxDepth(TreeNode root){
+        if(root == null){
+            return 0;
+        }
+        return Math.max(maxDepth(root.left),maxDepth(root.right)) + 1;
+    }
+    public TreeNode deserialize(String data) {
+        if(data.length() == 0){
+            return null;
+        }
+        String[] node = data.split(",");
+        Queue<TreeNode> queue = new LinkedList<>();
+        int index = 0;
+        TreeNode root = null;
+        if(node[index].equals("null")){
+            return null;
+        }else{
+            root = new TreeNode(Integer.parseInt(node[index++]));
+        }
+        queue.offer(root);
+        while(!queue.isEmpty() && index < node.length){
+            TreeNode cur = queue.poll();
+            if(node[index].equals("null")){
+                cur.left = null;
+                index++;
+            }else{
+                cur.left = new TreeNode(Integer.parseInt(node[index++]));
+                queue.offer(cur.left);
+            }
+            if(index < node.length){
+                if(node[index].equals("null")){
+                    cur.right = null;
+                    index++;
+                }else{
+                    cur.right = new TreeNode(Integer.parseInt(node[index++]));
+                    queue.offer(cur.right);
+                }
+            }
+
+        }
+        return root;
+    }
+```
+
+其实这题总的来看并不难，前提是要熟练写二叉树的序列化和反序列化
+
+然后再加上哈希表的记录重复出现的次数，最后注意一下小细节，就可以了
+
+这题题解上用的是另外的一种序列化方式，但是我不是很喜欢那种序列化方式，就没按题解的方法来做
+
+### 653.两数之和 IV - 输入二叉搜索树
+
+不难，简单记录一下
+
+第一种是直接写的
+
+第二种是看了题解之后按题解的思路写的
+
+```java
+	public boolean findTarget(TreeNode root, int k) {
+        List<Integer> inorderList = inorderTraversal(root);
+        int left = 0;
+        int right = inorderList.size() - 1;
+        while(left < right){
+            if(inorderList.get(left) + inorderList.get(right) == k){
+                return true;
+            }
+            if(inorderList.get(left) + inorderList.get(right) < k){
+                left++;
+            }
+            if(inorderList.get(left) + inorderList.get(right) > k){
+                right--;
+            }
+        }
+        return false;
+    }
+    private List<Integer> inorderTraversal(TreeNode root){
+        if(root == null){
+            return new ArrayList<Integer>();
+        }
+        Stack<TreeNode> stack = new Stack<>();
+        List<Integer> ret = new ArrayList<>();
+        TreeNode cur = root;
+        while(cur != null || !stack.empty()){
+            while(cur != null){
+                stack.push(cur);
+                cur = cur.left;
+            }
+            TreeNode top = stack.pop();
+            ret.add(top.val);
+            cur = top.right;
+        }
+        return ret;
+    }
+```
+
+第二种：
+
+```java
+	public HashSet<Integer> hashSet = new HashSet<>();
+    public boolean findTarget(TreeNode root, int k) {
+        if(root == null){
+            return false;
+        }
+        if(hashSet.contains(k - root.val)){
+            return true;
+        }else{
+            hashSet.add(root.val);
+            return findTarget(root.left,k) || findTarget(root.right,k);
+        }
+    }
+```
 
