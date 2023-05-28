@@ -1422,6 +1422,40 @@ GPT4选择用两个`queue`来分别记录每一层的每个节点，以及每个
     }
 ```
 
+```java
+public int widthOfBinaryTree(TreeNode root) {
+        if(root == null){
+            return 0;
+        }
+        Queue<TreeNode> nodeQueue = new LinkedList<>();
+        Queue<Integer> indexQueue = new LinkedList<>();
+        nodeQueue.offer(root);
+        indexQueue.offer(0);
+        int maxWeight = 0;
+        while(!nodeQueue.isEmpty()){
+            int size = nodeQueue.size();
+            int leftIndex = indexQueue.peek();
+            int rightIndex = 0;
+            while(size != 0){
+                size--;
+                TreeNode curNode = nodeQueue.poll();
+                int curIndex = indexQueue.poll();
+                rightIndex = curIndex;
+                if(curNode.left != null){
+                    nodeQueue.offer(curNode.left);
+                    indexQueue.offer(curIndex * 2 + 1);//虽然上面那样写也可以过，但是这样写更严谨
+                }									   //或者上面还是添加1，这里改成2 * i和2 * i + 1
+                if(curNode.right != null){             //经过测试，这三种写法都可以AC leetcode上的全部测试点
+                    nodeQueue.offer(curNode.right);
+                    indexQueue.offer(curIndex * 2 + 2);
+                }
+            }
+            maxWeight = Math.max(maxWeight,rightIndex - leftIndex + 1);
+        }
+        return maxWeight;
+    }
+```
+
 这一题本想问问有没有其他方法，梯子g了，等梯子好了我再问问
 
 ### NC234 二叉树的最小深度

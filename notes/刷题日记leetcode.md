@@ -1585,3 +1585,177 @@ emmm上面我的解释有点问题，我又不明白了，于是又去找了GPT4
     }
 ```
 
+### 654.最大二叉树
+
+简单的递归，直接放代码：
+
+```java
+	public TreeNode constructMaximumBinaryTree(int[] nums) {
+        if(nums.length == 0){
+            return null;
+        }
+        return constructMaximumBinaryTreeChild(nums,0,nums.length - 1);
+    }
+    private TreeNode constructMaximumBinaryTreeChild(int[] nums,int start,int end){
+        if(start > end){
+            return null;
+        }
+        int maxNum = nums[start];
+        int maxIndex = start;
+        for(int i = start;i <= end;i++){
+            if(nums[i] > maxNum){
+                maxNum = nums[i];
+                maxIndex = i;
+            }
+        }
+        TreeNode cur = new TreeNode(maxNum);
+        cur.left = constructMaximumBinaryTreeChild(nums,start,maxIndex - 1);
+        cur.right = constructMaximumBinaryTreeChild(nums,maxIndex + 1,end);
+        return cur;
+    }
+```
+
+### 669.修剪二叉搜索树
+
+这题也是一看到题一点思路都没有，看了题解才明白这题原来很简单
+
+这题还是用子树的思想
+
+对于当前节点，如果当前节点的值小于左边界，返回递归处理当前节点右子节点的结果
+
+如果大于右边界，返回递归处理当前节点左子节点的结果
+
+如果在两者之间，当前节点的左子节点就是递归处理左子节点之后的结果
+
+右子节点同理
+
+最后返回当前节点
+
+下面是AC代码：
+
+```java
+	public TreeNode trimBST(TreeNode root, int low, int high) {
+        if(root == null){
+            return null;
+        }
+        if(root.val < low){
+            return trimBST(root.right,low,high);
+        }else if(root.val > high){
+            return trimBST(root.left,low,high);
+        }else{
+            root.left = trimBST(root.left,low,high);
+            root.right = trimBST(root.right,low,high);
+            return root;
+        }
+    }
+```
+
+### 671.二叉树中第二小的节点
+
+自己写的方法就是用层序遍历，然后硬写
+
+代码如下：
+
+```java
+	public int findSecondMinimumValue(TreeNode root) {
+        if(root == null){
+            return -1;
+        }
+        Queue<TreeNode> queue = new LinkedList<>();
+        queue.offer(root);
+        boolean flag = false;
+        int ans = Integer.MAX_VALUE;
+        while(!queue.isEmpty()){
+            int size = queue.size();
+            List<Integer> list = new ArrayList<>();
+            while(size != 0){
+                size--;
+                TreeNode cur = queue.poll();
+                list.add(cur.val);
+                if(cur.left != null){
+                    queue.offer(cur.left);
+                }
+                if(cur.right != null){
+                    queue.offer(cur.right);
+                }
+            }
+            list.sort((o1,o2) -> o1 - o2);
+            if(list.get(0) > root.val){
+                if(list.get(0) <= ans){
+                    ans = list.get(0);
+                    flag = true;
+                }
+            }else{
+                for(int i = 1;i < list.size();i++){
+                    if(list.get(i) > root.val){
+                        if(list.get(i) <= ans){
+                            ans = list.get(i);
+                            flag = true;
+                        }
+                    }
+                }
+            }
+        }
+        if(flag){
+            return ans;
+        }else{
+            return -1;
+        }
+    }
+```
+
+题解的方法是用先序遍历，代码如下：
+
+```java
+	public int ans = -1;
+    public int findSecondMinimumValue(TreeNode root) {
+        int rootVal = root.val;
+        findSecondMinimumValueChild(root,rootVal);
+        return ans;
+    }
+    private void findSecondMinimumValueChild(TreeNode root,int rootVal){
+        if(root == null){
+            return;
+        }
+        if(ans != -1 && ans < root.val){
+            return;
+        }
+        if(root.val > rootVal){
+            ans = root.val;
+        }
+        findSecondMinimumValueChild(root.left,rootVal);
+        findSecondMinimumValueChild(root.right,rootVal);
+    }
+```
+
+麻了，不想解释
+
+### 124.二叉树中的最大路径和
+
+这题看题解感觉多难多难，其实也就那样
+
+还是先递归到叶子节点，然后在回溯的时候同时更新当前节点的路径最大值`maxSum`，并且返回包括当前节点的**单只**路径和的最大值
+
+可能说不明白，但是读一遍代码就明白了
+
+下面是代码；
+```java
+	public int maxSum = Integer.MIN_VALUE;
+    public int maxPathSum(TreeNode root) {
+        maxPathSumChild(root);
+        return maxSum;
+    }
+    private int maxPathSumChild(TreeNode root){
+        if(root == null){
+            return 0;
+        }
+        int leftRet = Math.max(maxPathSumChild(root.left),0);
+        int rightRet = Math.max(maxPathSumChild(root.right),0);
+        int curSum = leftRet + rightRet + root.val;
+        if(curSum > maxSum){
+            maxSum = curSum;
+        }
+        return Math.max(leftRet,rightRet) + root.val;
+    }
+```
+
