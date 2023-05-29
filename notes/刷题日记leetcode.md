@@ -1759,3 +1759,535 @@ emmm上面我的解释有点问题，我又不明白了，于是又去找了GPT4
     }
 ```
 
+### 687.最长同值路径
+
+这题跟上一题一样，都是在回溯的时候进行处理，更新最大值的同时计算返回值
+
+只不过要判断的条件有点复杂，要分别讨论当前节点，左子节点，右子节点的存在情况以及节点的值的情况
+
+感觉也不是很难理解，直接放代码吧
+
+下面是AC代码：
+
+```java
+	public int maxSum = 0;
+    public int longestUnivaluePath(TreeNode root) {
+        if(root == null){
+            return 0;
+        }
+        longestUnivaluePathChild(root);
+        return maxSum;
+    }
+    private int longestUnivaluePathChild(TreeNode root){
+        if(root == null || root.left == null && root.right == null){
+            return 0;
+        }
+        int leftRet = longestUnivaluePathChild(root.left);
+        int rightRet = longestUnivaluePathChild(root.right);
+        int curLen = 0;
+        int ret = 0;
+        if(root.left == null && root.right != null){
+            if(root.val == root.right.val){
+                curLen = rightRet + 1;
+                ret = curLen;
+            }else{
+                curLen = 0;
+                ret = 0;
+            }
+        }else if(root.left != null && root.right == null){
+            if(root.val == root.left.val){
+                curLen = leftRet + 1;
+                ret = curLen;
+            }else{
+                curLen = 0;
+                ret = 0;
+            }
+        }else{
+            if(root.left.val == root.right.val && root.left.val == root.val){
+                curLen = leftRet + rightRet + 2;
+                ret = Math.max(leftRet,rightRet) + 1;
+            }else if(root.left.val == root.val){
+                curLen = leftRet + 1;
+                ret = curLen;
+            }else if(root.right.val == root.val){
+                curLen = rightRet + 1;
+                ret = curLen;
+            }else{
+                curLen = 0;
+                ret = 0;
+            }
+        }
+        maxSum = Math.max(maxSum,curLen);
+        return ret;
+    }
+```
+
+### 814.二叉树剪枝
+
+参见“宫水三叶”大佬题解：
+
+>递归
+>根据题意，我们将原函数 pruneTree 作为递归函数，递归函数的含义为「将入参 root 中的所有不包含 111 的子树移除，并返回新树头结点」。
+>
+>不失一般性的考虑任意节点作为入参该如何处理：我们可以递归处理左右子树，并将新左右子树重新赋值给 root。由于当前节点 root 的左右子树可能为空树，因此我们要增加递归函数入参为空的边界处理。
+>
+>当递归操作完成后，若左右节点任一值不为空（说明当前节点 root 不为叶子节点），我们可以直接返回 root，否则根据 root 的值是否为 000 来决定返回空树还是 root 本身。
+>
+>代码：
+>
+>Java
+>TypeScript
+>class Solution {
+>    public TreeNode pruneTree(TreeNode root) {
+>        if (root == null) return null;
+>        root.left = pruneTree(root.left);
+>        root.right = pruneTree(root.right);
+>        if (root.left != null || root.right != null) return root;
+>        return root.val == 0 ? null : root;
+>    }
+>}
+>时间复杂度：O(n)O(n)O(n)
+>空间复杂度：忽略递归带来的额外空间开销，复杂度为 O(1)O(1)O(1)
+>
+>作者：宫水三叶
+>链接：https://leetcode.cn/problems/binary-tree-pruning/solutions/1686077/by-ac_oier-7me9/
+>来源：力扣（LeetCode）
+>著作权归作者所有。商业转载请联系作者获得授权，非商业转载请注明出处。
+
+首先要读懂这题的意思，什么样的子树要删除，什么样的子树无需删除
+
+如果一棵子树的所有的节点都是0，那么这棵子树就需要删除
+
+而如果一棵子树的节点不全为0，那么这棵子树就不能被删除
+
+具体可以看样例
+
+所以还是递归，但是在回溯的过程中处理当前节点时需要注意：
+
+因为回溯是从叶子节点开始回溯，所以先考虑叶子节点的情况：
+
+如果当前节点的左右子树都为`null`，即当前节点是叶子节点，那么判断当前节点的值是0还是1，如果是0，那么直接返回`null`，如果不是0，那么就返回当前节点
+
+而当走到非叶子节点的时候，由于此时我们不能删除节点值不全为0的节点，那么什么样的节点为根的子树是不全为0的呢
+
+由于我们是从叶子节点开始回溯的，并且当遇到节点值为0的叶子节点时会把这个节点删除（置为`null`），所以对于当前节点，如果其左右节点有一个不为空，就说明这棵子树的左右子树包含不为0的节点，也就说明这棵子树不能被删除
+
+而如果当前子树的左右节点都为`null`，那么就说明当前节点又成了叶子节点，所以判断当前节点的值是不是0，如果是0，那么删除，如果不是0，那么返回当前节点
+
+以下是AC代码：
+
+```java
+	public TreeNode pruneTree(TreeNode root) {
+        if(root == null){
+            return null;
+        }
+        root.left = pruneTree(root.left);
+        root.right = pruneTree(root.right);
+        if(root.left != null || root.right != null){
+            return root;
+        }
+        if(root.val == 0){
+            return null;
+        }else{
+            return root;
+        }
+    }
+```
+
+### 987.二叉树的垂序遍历
+
+#### 1.DFS + 哈希表 + 排序
+
+看完题解想死的心都有了，硬着头皮分析完，还是挺有成就感的
+
+题解来自大佬“宫水三叶”
+
+以下是链接：[【综合笔试题】难度 3.5/5，多解法热门二叉树笔试题 (qq.com)](https://mp.weixin.qq.com/s?__biz=MzU4NDE3MTEyMA==&mid=2247492468&idx=1&sn=0fee2f94b1cbbb4d63bafbdfaf6116de)
+
+主要思路就是先把整棵树遍历一遍，把每个节点的位置以及节点值放在`HashMap`中，然后把哈希表中的数据获取出来存在`List`中，并对`List`进行排序，最后把这个集合按照题目的要求整理成`List<List<Integer>>`就可以了
+
+下面是代码：
+
+```java
+	public Map<TreeNode,int[]> map = new HashMap<>();// col,row,val
+    public List<List<Integer>> verticalTraversal(TreeNode root) {
+        map.put(root,new int[]{0,0,root.val});
+        getMap(root);
+        List<int[]> list = new ArrayList<>(map.values());
+        Collections.sort(list,(o1,o2)->{
+            if(o1[0] != o2[0]) return o1[0] - o2[0];
+            if(o1[1] != o2[1]) return o1[1] - o2[1];
+            return o1[2] - o2[2];
+        });
+        List<List<Integer>> ret = new ArrayList<>();
+        int n = list.size();
+        for(int i = 0;i < n;){
+            int j = i;
+            List<Integer> temp = new ArrayList<>();
+            while(j < n && list.get(j)[0] == list.get(i)[0]) temp.add(list.get(j++)[2]);
+            i = j;
+            ret.add(temp);
+        }
+        return ret;
+    }
+    private void getMap(TreeNode root){
+        if(root == null){
+            return;
+        }
+        int[] arr = map.get(root);
+        int col = arr[0];
+        int row = arr[1];
+        if(root.left != null){
+            map.put(root.left,new int[]{col - 1,row + 1,root.left.val});
+            getMap(root.left);
+        }
+        if(root.right != null){
+            map.put(root.right,new int[]{col + 1,row + 1,root.right.val});
+            getMap(root.right);
+        }
+    }
+```
+
+其中有一段循环比较难理解，放一下和GPT4的聊天记录：https://poe.com/s/dqnx03l96ZoZF0tY26dy
+
+#### 2.DFS + 优先队列（堆）
+
+> 显然，最终要让所有节点的相应信息有序，可以使用「优先队列（堆）」边存储边维护有序性。 -- 引用自宫水三叶大佬
+
+下面是用堆来进行元素的排序
+
+AC代码如下：
+
+```java
+	public PriorityQueue<int[]> heap = new PriorityQueue<>((o1,o2)->{
+        if(o1[0] != o2[0]) return o1[0] - o2[0];
+        if(o1[1] != o2[1]) return o1[1] - o2[1];
+        return o1[2] - o2[2];
+    });
+    public List<List<Integer>> verticalTraversal(TreeNode root) {
+        heap.add(new int[]{0,0,root.val});
+        getHeap(root,new int[]{0,0,root.val});
+        List<List<Integer>> ret = new ArrayList<>();
+        while(!heap.isEmpty()){
+            List<Integer> temp = new ArrayList<>();
+            int[] top = heap.peek();
+            while(!heap.isEmpty() && top[0] == heap.peek()[0]) temp.add(heap.poll()[2]);
+            ret.add(temp);
+        }
+        return ret;
+    }
+    private void getHeap(TreeNode root,int[] arr){
+        if(root == null){
+            return;
+        }
+        if(root.left != null){
+            int[] arrNext = new int[]{arr[0] - 1,arr[1] + 1,root.left.val};
+            heap.add(arrNext);
+            getHeap(root.left,arrNext);
+        }
+        if(root.right != null){
+            int[] arrNext = new int[]{arr[0] + 1,arr[1] + 1,root.right.val};
+            heap.add(arrNext);
+            getHeap(root.right,arrNext);
+        }
+    }
+```
+
+### 240.搜索二维矩阵 II
+
+看成以右上角元素为根节点的二叉搜索树，从右上角的这个元素开始搜索
+
+如果当前元素等于`target`，返回`true`
+
+如果当前元素小于`target`，移到下一行
+
+如果当前元素大于`target`，移到左边的那一列
+
+就跟在二叉搜索树中查找元素一样
+
+下面是AC代码：
+
+```java
+	public boolean searchMatrix(int[][] matrix, int target) {
+        int m = matrix.length;
+        int n = matrix[0].length;
+        int startR = 0;
+        int startC = n - 1;
+        while(startR < m && startC >= 0){
+            if(matrix[startR][startC] == target){
+                return true;
+            }else if(target > matrix[startR][startC]){
+                startR++;
+            }else{
+                startC--;
+            }
+        }
+        return false;
+    }
+```
+
+### 965.单值二叉树
+
+很简单，直接放代码吧：
+
+```java
+	public boolean isUnivalTree(TreeNode root) {
+        if(root == null){
+            return true;
+        }
+        int val = root.val;
+        return check(root.left,val) && check(root.right,val);
+    }
+    private boolean check(TreeNode root,int val){
+        if(root == null){
+            return true;
+        }
+        if(root.val != val){
+            return false;
+        }else{
+            return check(root.left,val) && check(root.right,val);
+        }
+    }
+```
+
+### 面试题 04.06. 后继者
+
+代码不长，但是难理解
+
+摘自“宫水三叶”大佬的题解：
+
+>1.若有 root.val <= p.val : 根据 BST 特性可知当前节点 root 及其左子树子节点均满足「值小于等于 p.val」，因此不可能是 p 点的后继，我们直接到 root 的右子树搜索 p 的后继（递归处理）；
+>2.若有 root.val > p.val : 当第一次搜索到满足此条件的节点时，在以 root 为根节点的子树中「位于最左下方」的值为 p 的后继，但也有可能 root 没有左子树，因此 p 的后继要么在 root 的左子树中（若有），要么是 root 本身，此时我们可以直接到 root 的左子树搜索，若搜索结果为空返回 root，否则返回搜索结果。
+
+给我的感觉就是
+
+首先一直向`root`的右边找，找到第一个比`p.val`大的`root`
+
+此时根据二叉搜索树的性质，`p`的下一个节点就应该是`root`这棵子树的最左边的那个节点（如果有的话）
+
+所以再继续往`root`的左边找，如果没有左子树，那么直接返回`root`，如果有左子树，那么就一直向左边找，直到最左下的节点
+
+下面是AC代码：
+
+```java
+	public TreeNode inorderSuccessor(TreeNode root, TreeNode p) {
+        if(root == null){
+            return null;
+        }
+        if(p.val >= root.val){
+             return inorderSuccessor(root.right,p);
+        }
+        TreeNode leftRet = inorderSuccessor(root.left,p);
+        return leftRet == null ? root : leftRet;
+    }
+```
+
+附：（和GPT4的聊天记录）
+
+https://poe.com/s/tLoKU8qccsDxS1Qm4zHZ
+
+### 1022.从根到叶的二进制数之和
+
+本来想着继续按老方法，用`StringBuilder`每次拼接一个，但是发现太麻烦了，于是又去看题解了
+
+下面是大佬“宫水三叶”的AC代码：
+
+```java
+class Solution {
+    public int sumRootToLeaf(TreeNode root) {
+        return dfs(root, 0);
+    }
+    int dfs(TreeNode root, int cur) {
+        int ans = 0, ncur = (cur << 1) + root.val;
+        if (root.left != null) ans += dfs(root.left, ncur);
+        if (root.right != null) ans += dfs(root.right, ncur);
+        return root.left == null && root.right == null ? ncur : ans;
+    }
+}
+
+/*作者：宫水三叶
+链接：https://leetcode.cn/problems/sum-of-root-to-leaf-binary-numbers/solutions/1526069/by-ac_oier-1905/
+来源：力扣（LeetCode）
+著作权归作者所有。商业转载请联系作者获得授权，非商业转载请注明出处。*/
+```
+
+有点小难理解，于是让GPT4解释了一下：
+
+>代码的整体思路：这是一个二叉树的深度优先搜索（DFS）问题。我们遍历整棵树，并在遍历的过程中计算从根节点到当前节点所表示的二进制数。当我们到达叶节点时，将叶节点所表示的二进制数累加到结果中。最后返回累加的和。
+>
+>下面是详细的代码解释：
+>
+>java
+>
+>Copy
+>
+>```
+>// 定义一个 Solution 类
+>class Solution {
+>    // 定义求和的公共函数，作为入口
+>    public int sumRootToLeaf(TreeNode root) {
+>        // 调用 dfs 函数，从根节点开始遍历，并初始化当前值为 0
+>        return dfs(root, 0);
+>    }
+>
+>    // 定义一个递归的 dfs 函数，参数是当前节点 root 和从根节点到当前节点所表示的二进制数 cur
+>    int dfs(TreeNode root, int cur) {
+>        // 初始化当前子树的结果为 0
+>        int ans = 0;
+>        
+>        // 计算从根节点到当前节点的二进制数，将 cur 左移一位（相当于乘以 2），然后加上当前节点的值
+>        int ncur = (cur << 1) + root.val;
+>
+>        // 如果当前节点有左子节点，将左子节点的结果累加到 ans 上
+>        if (root.left != null) ans += dfs(root.left, ncur);
+>        
+>        // 如果当前节点有右子节点，将右子节点的结果累加到 ans 上
+>        if (root.right != null) ans += dfs(root.right, ncur);
+>
+>        // 如果当前节点是叶节点（即没有左子节点和右子节点），返回从根节点到当前节点所表示的二进制数
+>        // 否则返回当前子树的结果
+>        return root.left == null && root.right == null ? ncur : ans;
+>    }
+>}
+>```
+>
+>这段代码定义了一个名为 `Solution` 的类，其中包含了两个方法：`sumRootToLeaf` 和 `dfs`。`sumRootToLeaf` 是主方法，接收一个 `TreeNode` 类型的参数 `root`，表示二叉树的根节点。在这个方法中，调用 `dfs` 方法，并将当前值 `cur` 初始化为 0。
+>
+>`dfs` 方法是一个递归方法，它接收两个参数：当前节点 `root` 和从根节点到当前节点所表示的二进制数 `cur`。在 `dfs` 方法中，首先初始化当前子树的结果 `ans` 为 0。然后计算从根节点到当前节点的二进制数 `ncur`，将 `cur` 左移一位（相当于乘以 2），然后加上当前节点的值。接下来，如果当前节点有左子节点，那么将左子节点的结果累加到 `ans` 上；同理，如果当前节点有右子节点，那么将右子节点的结果累加到 `ans` 上。最后，如果当前节点是叶节点（即没有左子节点和右子节点），那么返回从根节点到当前节点所表示的二进制数；否则返回当前子树的结果。
+
+每次通过左移运算符`<<`来模拟二进制转十进制的过程，从而在遍历的同时就完成了进制转换，接下来只需要根据当前节点是不是叶子节点来确定返回值就可以了
+
+在**判断当前节点是不是叶子节点从而确定返回值**，这一步，大佬的代码也写的很简洁，然鹅我写的就很麻烦，（哭
+
+下面是我的代码：
+
+```java
+	public int sumRootToLeaf(TreeNode root) {
+        return getSum(root,0);
+    }
+    private int getSum(TreeNode root,int preSum){
+        if(root == null){
+            return preSum;
+        }
+        int curSum = (preSum << 1) + root.val;
+        int leftRet = getSum(root.left,curSum);
+        int rightRet = getSum(root.right,curSum);
+        if(root.left == null && root.right == null){
+            return curSum;
+        }else if(root.left == null && root.right != null){
+            return rightRet;
+        }else if(root.left != null && root.right == null){
+            return leftRet;
+        }else{
+            return leftRet + rightRet;
+        }
+    }
+```
+
+### 993.二叉树的堂兄弟节点
+
+看似很简单的题，实际上没那么简单
+
+由于判断是不是堂兄弟节点需要判断两个节点是不是在同一层，还要判断两个节点的父节点是不是同一个，所以单纯一个返回值已经不够用了，这里的dfs函数需要返回两个值，分别是父节点的值`parent.val`，用来判断这两个节点是不是有共同的父节点（因为题目中说明该二叉树当中所有节点的值都不相同），以及两个节点分别位于的深度`depth`
+
+然后在dfs函数中分别更新这两个值，并继续搜索
+
+下面是“宫水三叶”大佬的题解：
+
+https://leetcode-cn.com/problems/cousins-in-binary-tree/solution/gong-shui-san-xie-shu-de-sou-suo-dfs-bfs-b200/
+
+下面是GPT4的解法：
+
+>整体思路：
+>
+>1. 使用深度优先搜索（DFS）遍历二叉树。
+>2. 在遍历过程中，记录每个节点的父节点和深度信息。
+>3. 比较x和y对应的节点的父节点和深度信息，判断它们是否为堂兄弟节点。
+>
+>Java代码实现：
+>
+>java
+>
+>Copy
+>
+>```
+>// 树的节点定义
+>class TreeNode {
+>    int val;
+>    TreeNode left;
+>    TreeNode right;
+>    
+>    TreeNode() {}
+>
+>    TreeNode(int val) {
+>        this.val = val;
+>    }
+>
+>    TreeNode(int val, TreeNode left, TreeNode right) {
+>        this.val = val;
+>        this.left = left;
+>        this.right = right;
+>    }
+>}
+>
+>public class Solution {
+>    // 使用两个数组分别存储节点深度和父节点信息
+>    int[] depth = new int[101];
+>    int[] parent = new int[101];
+>
+>    public boolean isCousins(TreeNode root, int x, int y) {
+>        // 使用深度优先搜索遍历二叉树，记录节点深度和父节点信息
+>        dfs(root, 0, -1);
+>        
+>        // 判断x和y对应的节点是否为堂兄弟节点
+>        return depth[x] == depth[y] && parent[x] != parent[y];
+>    }
+>
+>    // 深度优先搜索遍历二叉树
+>    private void dfs(TreeNode node, int d, int p) {
+>        if (node == null) return;
+>        
+>        // 记录当前节点的深度和父节点
+>        depth[node.val] = d;
+>        parent[node.val] = p;
+>        
+>        // 遍历左子树和右子树
+>        dfs(node.left, d + 1, node.val);
+>        dfs(node.right, d + 1, node.val);
+>    }
+>}
+>```
+>
+>代码实现中，我们使用深度优先搜索遍历二叉树，记录每个节点的深度和父节点信息。然后比较x和y对应的节点的深度和父节点信息，判断它们是否为堂兄弟节点。这样我们可以在O(N)的时间复杂度内解决这个问题，其中N为二叉树的节点个数。
+
+看得出来，GPT4也是用的返回一个数组的深度优先搜索
+
+最后是我写的：
+
+```java
+	public boolean isCousins(TreeNode root, int x, int y) {
+        if(root.val == x || root.val == y){
+            return false;
+        }
+        int[] xRet = dfs(root,null,x,1);
+        int[] yRet = dfs(root,null,y,1);
+        if(xRet[1] == yRet[1]){
+            return xRet[0] != yRet[0];
+        }else{
+            return false;
+        }
+    }
+    private int[] dfs(TreeNode root,TreeNode parent,int t,int depth){
+        if(root == null){
+            return null;
+        }
+        if(root.val == t){
+            return new int[]{parent.val,depth};
+        }else{
+            int[] leftRet = dfs(root.left,root,t,depth + 1);
+            int[] rightRet = dfs(root.right,root,t,depth + 1);
+            return leftRet == null ? rightRet : leftRet;
+        }
+    }
+```
+
