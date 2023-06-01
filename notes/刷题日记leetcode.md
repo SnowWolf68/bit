@@ -2291,3 +2291,124 @@ https://leetcode-cn.com/problems/cousins-in-binary-tree/solution/gong-shui-san-x
     }
 ```
 
+### 3.无重复字符的最长子串
+
+题不难，但是我也没AC，反思……
+
+先放代码，再说哪里需要注意：
+
+```java
+	public int lengthOfLongestSubstring(String s) {
+        Set<Character> set = new HashSet<>();
+        int index = 0;
+        int last = 0;
+        int len = 0;
+        while(index < s.length()){
+            if(!set.contains(s.charAt(index))){
+                set.add(s.charAt(index));
+                len = Math.max(len,index - last + 1);//3
+                index++;//1
+            }else{
+                set.remove(s.charAt(last));//2
+                last++;
+            }
+        }
+        return len;
+    }
+```
+
+注释1处：这里的`index++`不能放在`set.add(s.charAt(index));`里面，因为此时只能确定`index`位置（不++之前）的元素是不和之前的元素重复的，但是无法保证++之后`index`位置的元素仍然和之前的元素不重复，所以必须在`index++`之前更新`len`，或者说`maxLen`
+
+注释2处：此处无需`while`循环前移`last`，因为如果前移之后还是存在重复的，那么还是进不去第一个`if`，还是会到`else`分支中继续前移`last`，并移除`set`中相应的元素
+
+注释3处：`len`的更新只放在`index++`这里面就行，原因是只有`index++`的时候，才会让`len`变长，在`else`语句中，每次都是把这个滑动窗口末尾的元素去掉，那么`len`的长度肯定是变小的，所以在`else`这个分支中，无需进行`len`的更新，只在第一个`if`分支中（即`index++`的地方）进行`len`的更新即可
+
+### 36.有效的数独
+
+这题好难，人麻了
+
+https://poe.com/s/wRS95y6zyQSQC8UWBfOL
+
+先放代码，再解释吧：
+
+```java
+	public boolean isValidSudoku(char[][] board) {
+        for(int i = 0;i < 9;i++){
+            Set<Character> row = new HashSet<>();
+            Set<Character> column = new HashSet<>();
+            Set<Character> square = new HashSet<>();
+            for(int j = 0;j < 9;j++){
+                if(board[i][j] != '.' && !row.add(board[i][j])){
+                    return false;
+                }
+                if(board[j][i] != '.' && !column.add(board[j][i])){
+                    return false;
+                }
+                int rowIndex = 3 * (i / 3) + j / 3;
+                int columnIndex = 3 * (i % 3) + j % 3;
+                if(board[rowIndex][columnIndex] != '.' && !square.add(board[rowIndex][columnIndex])){
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+```
+
+首先需要注意的是，外层循环的`i`并不是特指的行或者列，而是动态变化的
+
+当内层循环判断的是行的时候，那么外层循环的`i`就遍历的是每一行
+
+当内层循环判断的是列的时候，那么外层循环的`i`就是遍历每一列
+
+当内层循环判断的是九宫格的时候，那么外层循环的`i`就是遍历的每一个九宫格
+
+这样就可以在一个嵌套循环中搞定这三种情况，而不需要三个嵌套的循环
+
+但是判断九宫格的时候的`rowIndex`和`columnIndex`是怎么根据`i`和`j`算出来的我实在是看不懂
+
+相当痛苦
+
+### 138.复制带随机指针的链表
+
+这题博哥讲过，讲完感觉还可以，但其实这题还是挺不好做的
+
+需要进行两次遍历
+
+第一次遍历，按照原来链表的`val`创建出等量的新节点值，作为返回的链表的节点
+
+同时用`Map`建立起原来节点和对应的新节点之间的对应关系
+
+然后进行第二次遍历，这次遍历的目的是重建`next`指针以及`random`指针
+
+重建的方法很巧妙，
+
+假设`cur`是遍历到的每一个节点
+
+`map.get(cur.next)`获取到的是新的`cur`节点的`next`节点，而`map.get(cur).next`获取到的是当前`cur`节点对应新节点的`next`指针的指向（默认初始化为`null`），需要我们把这个指针指向`map.get(cur.next)`，即新链表当前节点的下一个节点
+
+即`map.get(cur).next = map.get(cur.next)`
+
+`random`指针同理
+
+下面是代码：
+
+```java
+	public Node copyRandomList(Node head) {
+        Map<Node,Node> map = new HashMap<>();
+        Node cur = head;
+        while(cur != null){
+            Node node = new Node(cur.val);
+            map.put(cur,node);
+            cur = cur.next;
+        }
+        cur = head;
+        while(cur != null){
+            map.get(cur).next = map.get(cur.next);
+            map.get(cur).random = map.get(cur.random);
+            cur = cur.next;
+        }
+        return map.get(head);
+    }
+```
+
